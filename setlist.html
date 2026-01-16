@@ -825,7 +825,14 @@
         const inputPw = prompt('하트 초기화 비밀번호를 입력하세요:');
         if (inputPw === RESET_PASSWORD) {
             if (confirm('정말 모든 하트를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
+                // 버퍼에 남아있는 하트 전송 취소
+                clearTimeout(flushTimeout);
+                Object.keys(heartBuffer).forEach(k => heartBuffer[k] = 0);
+
+                // Firebase 삭제
                 database.ref('hearts').remove();
+
+                // 로컬 카운트 초기화
                 Object.keys(localHeartCounts).forEach(k => localHeartCounts[k] = 0);
                 document.querySelectorAll('.heart-count').forEach(el => el.innerText = '0');
                 alert('하트가 초기화되었습니다.');
