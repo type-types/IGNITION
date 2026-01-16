@@ -84,6 +84,7 @@
         .heart-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
         .heart-btn:active { transform: scale(0.95); }
         .heart-btn.clicked { animation: heartPop 0.3s ease; }
+        .heart-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
         .heart-count { font-size: 0.8rem; color: #ccc; min-width: 20px; }
         .song-item.active .heart-btn { background: rgba(255,255,255,0.2); }
         .song-item.active .heart-count { color: white; }
@@ -165,6 +166,7 @@
         .raffle-join-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
         .raffle-join-btn:hover { transform: scale(1.02); }
         .raffle-join-btn:disabled { background: #333; color: #666; cursor: default; transform: none; }
+        .raffle-join-btn.interaction-disabled { background: #444; color: #888; cursor: not-allowed; }
         .raffle-participant-count { font-size: 0.85rem; color: #888; margin-top: 15px; }
         .raffle-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; }
         .raffle-close:hover { background: #444; }
@@ -319,6 +321,20 @@
             🎛️ 관리자 컨트롤
             <span>✓ 인증됨</span>
         </div>
+
+        <!-- 관객 참여 기능 일괄 관리 -->
+        <div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, rgba(255,77,0,0.1), rgba(255,106,51,0.05)); border: 1px solid rgba(255,77,0,0.3); border-radius: 12px;">
+            <div style="font-size: 0.9rem; color: var(--main-color); margin-bottom: 12px; font-weight: bold;">🎮 관객 참여 기능 (일괄 관리)</div>
+            <div style="font-size: 0.75rem; color: #888; margin-bottom: 12px;">하트, 채팅, 추첨 참여를 한 번에 열거나 닫습니다</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="special-btn" id="interaction-open-btn" style="flex:1; background: linear-gradient(135deg, #27ae60, #2ecc71); border: none; color: white;" onclick="setInteractionEnabled(true)">🔓 참여 열기</button>
+                <button class="special-btn" id="interaction-close-btn" style="flex:1; background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; color: white;" onclick="setInteractionEnabled(false)">🔒 참여 닫기</button>
+            </div>
+            <div style="margin-top: 10px; text-align: center;">
+                <span id="interaction-status" style="font-size: 0.8rem; color: #e74c3c;">현재: 닫힘 🔒</span>
+            </div>
+        </div>
+
         <div class="special-btn-grid">
             <button class="special-btn" onclick="updateLive('', '')">⏸️ 대기 상태</button>
             <button class="special-btn" onclick="updateLive('🎉', '공연이 종료되었습니다')">🔚 공연 종료</button>
@@ -503,6 +519,7 @@
     let currentTeam = '';
     let currentSong = '';
     let isAdmin = false;
+    let interactionEnabled = false; // 관객 참여 기능 활성화 여부 (하트, 채팅, 추첨)
 
     // 셋리스트 데이터
     const playlist = [
@@ -729,6 +746,9 @@
 
     // 하트 추가 (최적화 버전)
     function addHeart(songId, btnElement) {
+        // 참여 기능이 닫혀있으면 무시
+        if (!interactionEnabled) return;
+
         // 버튼 애니메이션
         btnElement.classList.add('clicked');
         setTimeout(() => btnElement.classList.remove('clicked'), 300);
@@ -910,6 +930,12 @@
 
     // 추첨 참여
     function joinRaffle() {
+        // 참여 기능이 닫혀있으면 무시
+        if (!interactionEnabled) {
+            alert('아직 추첨에 참여할 수 없습니다.');
+            return;
+        }
+
         if (myRaffleNumber) return; // 이미 참여함
 
         // 새 번호 발급 (001~999)
@@ -950,7 +976,18 @@
             status.innerText = '내 번호';
             numberEl.innerText = myRaffleNumber;
             joinBtn.disabled = true;
+            joinBtn.classList.remove('interaction-disabled');
             joinBtn.innerText = '참여 완료!';
+        } else if (!interactionEnabled) {
+            // 참여 기능이 닫혀있는 경우
+            fab.classList.remove('joined');
+            fab.innerText = '🎟️';
+            header.classList.remove('joined');
+            status.innerText = '16:30에 홍대 클럽FF에서 만나요!';
+            numberEl.innerText = '-';
+            joinBtn.disabled = true;
+            joinBtn.classList.add('interaction-disabled');
+            joinBtn.innerText = '16:30부터 추첨 참여가 가능합니다';
         } else {
             fab.classList.remove('joined');
             fab.innerText = '🎟️';
@@ -958,6 +995,7 @@
             status.innerText = '참여하면 번호를 받아요';
             numberEl.innerText = '-';
             joinBtn.disabled = false;
+            joinBtn.classList.remove('interaction-disabled');
             joinBtn.innerText = '추첨 참여하기';
         }
 
@@ -1100,21 +1138,25 @@
         const statusEl = document.getElementById('admin-chat-status');
         const toggleBtn = document.getElementById('chat-toggle-btn');
 
-        if (chatEnabled) {
+        // 참여 기능이 닫혀있으면 채팅도 비활성화
+        if (!interactionEnabled) {
+            input.disabled = true;
+            input.placeholder = '16:30에 채팅창이 열립니다.';
+            sendBtn.disabled = true;
+        } else if (chatEnabled) {
             input.disabled = false;
             input.placeholder = '메시지 입력 (최대 30자)';
             if (!chatCooldown) sendBtn.disabled = false;
-            if (statusEl) statusEl.innerText = '(활성화)';
-            if (statusEl) statusEl.style.color = '#27ae60';
-            if (toggleBtn) toggleBtn.innerText = '🔒 채팅 비활성화';
         } else {
             input.disabled = true;
             input.placeholder = '채팅이 비활성화되었습니다';
             sendBtn.disabled = true;
-            if (statusEl) statusEl.innerText = '(비활성화)';
-            if (statusEl) statusEl.style.color = '#e74c3c';
-            if (toggleBtn) toggleBtn.innerText = '🔓 채팅 활성화';
         }
+
+        // 관리자 패널 상태 표시
+        if (statusEl) statusEl.innerText = chatEnabled ? '(활성화)' : '(비활성화)';
+        if (statusEl) statusEl.style.color = chatEnabled ? '#27ae60' : '#e74c3c';
+        if (toggleBtn) toggleBtn.innerText = chatEnabled ? '🔒 채팅 비활성화' : '🔓 채팅 활성화';
     }
 
     // 채팅 활성화/비활성화 토글 (관리자)
@@ -1215,6 +1257,12 @@
 
     // 채팅 전송
     function sendChat() {
+        // 참여 기능이 닫혀있으면 무시
+        if (!interactionEnabled) {
+            alert('아직 채팅에 참여할 수 없습니다.');
+            return;
+        }
+
         if (!chatEnabled) {
             alert('채팅이 비활성화되었습니다.');
             return;
@@ -1683,6 +1731,95 @@
         // 글로우 효과 추가
         const fillEl = document.getElementById('hype-fill');
         fillEl.classList.add('maxed-permanent');
+    }
+
+    // ========== 관객 참여 기능 일괄 관리 ==========
+    // 관객 참여 기능 상태 감시
+    database.ref('interactionEnabled').on('value', (snapshot) => {
+        interactionEnabled = snapshot.val() === true; // 기본값 false (닫힘)
+        updateInteractionUI();
+    });
+
+    // 관객 참여 기능 열기/닫기 (관리자)
+    function setInteractionEnabled(enabled) {
+        database.ref('interactionEnabled').set(enabled);
+    }
+
+    // 관객 참여 기능 UI 업데이트
+    function updateInteractionUI() {
+        // 관리자 패널 상태 표시
+        const statusEl = document.getElementById('interaction-status');
+        if (statusEl) {
+            if (interactionEnabled) {
+                statusEl.innerText = '현재: 열림 🔓';
+                statusEl.style.color = '#27ae60';
+            } else {
+                statusEl.innerText = '현재: 닫힘 🔒';
+                statusEl.style.color = '#e74c3c';
+            }
+        }
+
+        // 하트 버튼 상태
+        updateHeartButtonsState();
+
+        // 채팅 상태
+        updateChatInteractionState();
+
+        // 추첨 참여 버튼 상태
+        updateRaffleInteractionState();
+    }
+
+    // 하트 버튼 상태 업데이트
+    function updateHeartButtonsState() {
+        const heartBtns = document.querySelectorAll('.heart-btn');
+        heartBtns.forEach(btn => {
+            if (interactionEnabled) {
+                btn.classList.remove('disabled');
+            } else {
+                btn.classList.add('disabled');
+            }
+        });
+    }
+
+    // 채팅 참여 상태 업데이트
+    function updateChatInteractionState() {
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+
+        if (!interactionEnabled) {
+            input.disabled = true;
+            input.placeholder = '16:30에 채팅창이 열립니다.';
+            sendBtn.disabled = true;
+        } else if (chatEnabled) {
+            input.disabled = false;
+            input.placeholder = '메시지 입력 (최대 30자)';
+            if (!chatCooldown) sendBtn.disabled = false;
+        }
+    }
+
+    // 추첨 참여 상태 업데이트
+    function updateRaffleInteractionState() {
+        const joinBtn = document.getElementById('raffle-join-btn');
+        const statusEl = document.getElementById('raffle-status');
+
+        if (!joinBtn) return;
+
+        if (myRaffleNumber) {
+            // 이미 참여한 경우 - 기존 로직 유지
+            return;
+        }
+
+        if (!interactionEnabled) {
+            joinBtn.disabled = true;
+            joinBtn.classList.add('interaction-disabled');
+            joinBtn.innerText = '아직 참여할 수 없습니다';
+            if (statusEl) statusEl.innerText = '관리자가 열면 참여할 수 있어요';
+        } else {
+            joinBtn.disabled = false;
+            joinBtn.classList.remove('interaction-disabled');
+            joinBtn.innerText = '추첨 참여하기';
+            if (statusEl) statusEl.innerText = '참여하면 번호를 받아요';
+        }
     }
 
     // 초기화
