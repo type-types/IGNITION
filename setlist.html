@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IGNITION - LIVE SETLIST</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root { --main-color: #ff4d00; --bg-color: #0a0a0a; --card-bg: #1a1a1a; }
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: white; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; text-align: center; min-height: 100vh; }
+        .container { max-width: 600px; margin: 0 auto; }
+
+        /* 헤더 */
+        header h1 { letter-spacing: 2px; margin-bottom: 5px; }
+        header p { color: #888; margin-top: 0; }
+
+        /* 현재 재생 중 표시 (상단 고정) */
+        .now-playing { background: linear-gradient(135deg, var(--main-color), #ff6a33); padding: 12px 20px; border-radius: 0 0 12px 12px; display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .now-playing.visible { display: block; }
+        .now-playing-inner { max-width: 600px; margin: 0 auto; }
+        body.has-now-playing { padding-top: 100px; }
+        .now-playing-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 5px; }
+        .now-playing-team { font-size: 0.9rem; opacity: 0.9; }
+        .now-playing-song { font-size: 1.5rem; font-weight: 800; margin-top: 3px; }
+
+        /* 열기 게이지 */
+        .hype-gauge-container { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .hype-toggle-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer; padding: 2px 8px; margin-left: 8px; transition: all 0.2s; }
+        .hype-toggle-btn:hover { color: white; }
+        .hype-gauge-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 200px; opacity: 1; }
+        .hype-gauge-content.collapsed { max-height: 0; opacity: 0; margin-top: 0; }
+        .hype-gauge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .hype-gauge-label { font-size: 0.75rem; opacity: 0.9; }
+        .hype-gauge-percent { font-size: 0.85rem; font-weight: bold; }
+        .hype-gauge-bar { background: rgba(0,0,0,0.3); border-radius: 10px; height: 20px; overflow: hidden; position: relative; }
+        .hype-gauge-fill { height: 100%; background: linear-gradient(90deg, #FFD700, #FF6B00, #FF0000); border-radius: 10px; transition: width 0.3s ease; width: 0%; }
+        .hype-gauge-fill.maxed { animation: gaugeGlow 0.5s ease infinite alternate; }
+        .hype-gauge-fill.maxed-permanent { animation: gaugeGlowPermanent 1s ease-in-out infinite; }
+        @keyframes gaugeGlow { from { box-shadow: 0 0 10px #FFD700; } to { box-shadow: 0 0 25px #FF0000, 0 0 50px #FF6B00; } }
+        @keyframes gaugeGlowPermanent { 0%, 100% { box-shadow: 0 0 15px #FFD700, 0 0 30px #FF6B00; } 50% { box-shadow: 0 0 30px #FF0000, 0 0 60px #FF6B00, 0 0 80px #FFD700; } }
+        .hype-btn { margin-top: 10px; width: 100%; padding: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .hype-btn:hover { background: rgba(255,255,255,0.25); }
+        .hype-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+        .hype-btn .fire-icon { font-size: 1.2rem; }
+
+        /* 폭발 이펙트 오버레이 */
+        .hype-explosion { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 400; display: none; align-items: center; justify-content: center; pointer-events: none; box-shadow: inset 0 0 100px 50px rgba(255,0,0,0.8), inset 0 0 200px 100px rgba(255,107,0,0.5); animation: explosionGlow 300s ease forwards, explosionShake 0.5s ease-in-out; }
+        .hype-explosion.visible { display: flex; }
+        .hype-explosion-text { font-size: 3.5rem; font-weight: 900; color: white; text-shadow: 0 0 30px #FFD700, 0 0 60px #FF6B00, 0 0 100px #FF0000; animation: explosionPop 0.5s ease, textPulse 0.3s ease infinite; }
+        @keyframes explosionGlow { 0% { box-shadow: inset 0 0 150px 80px rgba(255,0,0,0.9), inset 0 0 300px 150px rgba(255,107,0,0.7); } 2% { box-shadow: inset 0 0 100px 50px rgba(255,0,0,0.8), inset 0 0 200px 100px rgba(255,107,0,0.5); } 98% { box-shadow: inset 0 0 80px 40px rgba(255,0,0,0.6), inset 0 0 150px 80px rgba(255,107,0,0.3); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+        @keyframes explosionShake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); } 20%, 40%, 60%, 80% { transform: translateX(8px); } }
+        @keyframes explosionPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes textPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        /* 셋리스트 섹션 */
+        .setlist-section { text-align: left; margin-bottom: 30px; }
+        .team-block { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #333; }
+        .team-block.has-active { border-color: var(--main-color); box-shadow: 0 0 20px rgba(255, 77, 0, 0.15); }
+        .team-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .team-name { font-size: 1.1rem; font-weight: bold; color: var(--main-color); }
+        .team-badge { background: #333; color: #888; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; }
+        .team-block.has-active .team-badge { background: var(--main-color); color: white; }
+        .team-members { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.75rem; color: #999; margin-bottom: 15px; padding: 12px; background: #1f1f1f; border-radius: 8px; }
+        .team-members .member-item { display: flex; gap: 6px; }
+        .team-members .part { color: #666; flex-shrink: 0; min-width: 55px; }
+        .team-members .names { line-height: 1.5; }
+
+        /* 곡 리스트 */
+        .song-list { display: flex; flex-direction: column; gap: 8px; }
+        .song-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #252525; border-radius: 8px; transition: all 0.3s; cursor: default; }
+        .song-item.active { background: var(--main-color); transform: scale(1.02); box-shadow: 0 4px 15px rgba(255, 77, 0, 0.4); }
+        .song-number { width: 24px; height: 24px; border-radius: 50%; background: #333; color: #888; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .song-item.active .song-number { background: rgba(255,255,255,0.2); color: white; }
+        .song-title { font-size: 0.95rem; flex: 1; }
+        .song-item.active .song-title { font-weight: bold; }
+        .playing-icon { display: none; }
+        .song-item.active .playing-icon { display: block; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* 하트 버튼 */
+        .heart-btn { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); border: none; color: #ff6b81; padding: 6px 10px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; flex-shrink: 0; }
+        .heart-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+        .heart-btn:active { transform: scale(0.95); }
+        .heart-btn.clicked { animation: heartPop 0.3s ease; }
+        .heart-count { font-size: 0.8rem; color: #ccc; min-width: 20px; }
+        .song-item.active .heart-btn { background: rgba(255,255,255,0.2); }
+        .song-item.active .heart-count { color: white; }
+        @keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+        /* 하트 플로팅 애니메이션 */
+        .floating-heart { position: fixed; pointer-events: none; font-size: 1.5rem; animation: floatUp 1s ease-out forwards; z-index: 200; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(1.5); } }
+
+        /* 관리자 모드 - 곡 클릭 가능 */
+        .admin-mode .song-item { cursor: pointer; }
+        .admin-mode .song-item:hover:not(.active) { background: #333; }
+
+        /* 비밀번호 입력 */
+        .password-section { margin-top: 30px; padding-top: 30px; border-top: 1px solid #333; }
+        .password-input-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .password-input-group input { background: #222; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 8px; font-size: 1rem; width: 200px; }
+        .password-input-group input:focus { outline: none; border-color: var(--main-color); }
+        .password-input-group button { background: var(--main-color); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .password-input-group button:hover { background: #ff6a33; }
+        .error-msg { color: #ff4444; font-size: 0.85rem; margin-top: 10px; display: none; }
+
+        /* 관리자 컨트롤 */
+        .admin-controls { margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; display: none; }
+        .admin-controls.visible { display: block; }
+        .admin-controls-title { font-size: 0.85rem; color: #888; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .admin-controls-title span { color: #4CAF50; }
+        .special-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .special-btn { background: #222; border: 1px solid #444; color: white; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+        .special-btn:hover { border-color: var(--main-color); background: #2a2a2a; }
+
+        /* 리더보드 플로팅 버튼 */
+        .leaderboard-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .leaderboard-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6); }
+        .leaderboard-fab:active { transform: scale(0.95); }
+
+        /* 리더보드 모달 */
+        .leaderboard-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .leaderboard-overlay.visible { display: flex; }
+        .leaderboard-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 400px; max-height: 80vh; overflow: hidden; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .leaderboard-header { background: linear-gradient(135deg, #FFD700, #FFA500); padding: 20px; text-align: center; }
+        .leaderboard-header h2 { margin: 0; font-size: 1.3rem; color: #000; }
+        .leaderboard-header p { margin: 5px 0 0; font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+        .leaderboard-content { padding: 15px; max-height: 50vh; overflow-y: auto; }
+        .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #252525; border-radius: 10px; margin-bottom: 10px; }
+        .leaderboard-item.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1)); border: 1px solid rgba(255,215,0,0.3); }
+        .leaderboard-item.rank-2 { background: linear-gradient(135deg, rgba(192,192,192,0.2), rgba(169,169,169,0.1)); border: 1px solid rgba(192,192,192,0.3); }
+        .leaderboard-item.rank-3 { background: linear-gradient(135deg, rgba(205,127,50,0.2), rgba(184,115,51,0.1)); border: 1px solid rgba(205,127,50,0.3); }
+        .leaderboard-rank { width: 32px; height: 32px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
+        .rank-1 .leaderboard-rank { background: #FFD700; color: #000; }
+        .rank-2 .leaderboard-rank { background: #C0C0C0; color: #000; }
+        .rank-3 .leaderboard-rank { background: #CD7F32; color: #fff; }
+        .leaderboard-info { flex: 1; min-width: 0; }
+        .leaderboard-song { font-weight: bold; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .leaderboard-team { font-size: 0.75rem; color: #888; margin-top: 2px; }
+        .leaderboard-hearts { color: #ff6b81; font-weight: bold; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .leaderboard-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .leaderboard-close:hover { background: #444; }
+        .leaderboard-empty { text-align: center; padding: 30px; color: #666; }
+
+        /* 추첨 참여 플로팅 버튼 */
+        .raffle-fab { position: fixed; bottom: 24px; left: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .raffle-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(155, 89, 182, 0.6); }
+        .raffle-fab.joined { background: linear-gradient(135deg, #27ae60, #2ecc71); box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+        .raffle-fab.joined:hover { box-shadow: 0 6px 20px rgba(46, 204, 113, 0.6); }
+
+        /* 추첨 모달 */
+        .raffle-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .raffle-overlay.visible { display: flex; }
+        .raffle-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 400px; overflow: hidden; animation: slideUp 0.3s ease; }
+        .raffle-header { background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 20px; text-align: center; }
+        .raffle-header.joined { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .raffle-header h2 { margin: 0; font-size: 1.3rem; }
+        .raffle-header p { margin: 5px 0 0; font-size: 0.8rem; opacity: 0.8; }
+        .raffle-content { padding: 25px; text-align: center; }
+        .raffle-number { font-size: 4rem; font-weight: 900; color: var(--main-color); margin: 20px 0; letter-spacing: 4px; }
+        .raffle-status { font-size: 0.9rem; color: #888; margin-bottom: 20px; }
+        .raffle-join-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .raffle-join-btn:hover { transform: scale(1.02); }
+        .raffle-join-btn:disabled { background: #333; color: #666; cursor: default; transform: none; }
+        .raffle-participant-count { font-size: 0.85rem; color: #888; margin-top: 15px; }
+        .raffle-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; }
+        .raffle-close:hover { background: #444; }
+
+        /* 관리자 추첨 컨트롤 */
+        .raffle-admin { margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+        .raffle-admin-title { font-size: 0.8rem; color: #888; margin-bottom: 10px; }
+        .raffle-draw-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .raffle-draw-btn:hover { opacity: 0.9; }
+        .raffle-reset-btn { width: 100%; padding: 12px; background: transparent; border: 1px solid #444; border-radius: 8px; color: #888; font-size: 0.85rem; cursor: pointer; }
+        .raffle-reset-btn:hover { border-color: #666; color: #aaa; }
+
+        /* 당첨 결과 모달 */
+        .winner-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .winner-overlay.visible { display: flex; }
+        .winner-modal { text-align: center; animation: winnerPop 0.5s ease; }
+        @keyframes winnerPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        .winner-icon { font-size: 5rem; margin-bottom: 20px; }
+        .winner-label { font-size: 1.2rem; color: #888; margin-bottom: 10px; }
+        .winner-number { font-size: 6rem; font-weight: 900; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .my-number-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; }
+        .my-number-label { font-size: 0.9rem; color: #666; margin-bottom: 5px; }
+        .my-number { font-size: 2.5rem; font-weight: 700; color: #9b59b6; }
+        .winner-result { margin-top: 15px; font-size: 1.1rem; font-weight: bold; min-height: 30px; }
+        .winner-result.is-winner { color: #FFD700; font-size: 1.5rem; animation: winnerPulse 0.5s ease infinite alternate; }
+        @keyframes winnerPulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .winner-modal.is-winner { background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%); }
+        .winner-close { margin-top: 30px; padding: 15px 40px; background: var(--main-color); border: none; border-radius: 10px; color: white; font-size: 1rem; cursor: pointer; }
+
+        /* 채팅 플로팅 버튼 */
+        .chat-fab { position: fixed; bottom: 88px; right: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #3498db, #2980b9); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .chat-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6); }
+        .chat-fab:active { transform: scale(0.95); }
+        .chat-fab .unread-badge { position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; background: #e74c3c; border-radius: 50%; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; font-weight: bold; display: none; }
+        .chat-fab .unread-badge.visible { display: flex; }
+
+        /* 채팅 모달 */
+        .chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: flex-end; justify-content: center; padding: 0; }
+        .chat-overlay.visible { display: flex; }
+        .chat-modal { background: var(--card-bg); border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; height: 70vh; display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+        .chat-header { background: linear-gradient(135deg, #3498db, #2980b9); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-radius: 16px 16px 0 0; }
+        .chat-header h2 { margin: 0; font-size: 1.1rem; }
+        .chat-header-info { font-size: 0.75rem; opacity: 0.8; }
+        .chat-close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-message { background: #252525; padding: 10px 14px; border-radius: 12px; max-width: 85%; word-break: break-word; }
+        .chat-message.mine { background: #3498db; align-self: flex-end; }
+        .chat-message-text { font-size: 0.9rem; line-height: 1.4; }
+        .chat-message-time { font-size: 0.65rem; color: #888; margin-top: 4px; text-align: right; }
+        .chat-message.mine .chat-message-time { color: rgba(255,255,255,0.6); }
+        .chat-empty { text-align: center; color: #666; padding: 40px 20px; }
+        .chat-input-area { padding: 15px; border-top: 1px solid #333; display: flex; gap: 10px; }
+        .chat-input { flex: 1; background: #252525; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 25px; font-size: 0.9rem; outline: none; }
+        .chat-input:focus { border-color: #3498db; }
+        .chat-input::placeholder { color: #666; }
+        .chat-send-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #3498db, #2980b9); border: none; border-radius: 50%; color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .chat-send-btn:hover { transform: scale(1.05); }
+        .chat-send-btn:disabled { background: #333; color: #666; cursor: default; transform: none; }
+        .chat-cooldown { font-size: 0.75rem; color: #e74c3c; text-align: center; padding: 5px; display: none; }
+        .chat-cooldown.visible { display: block; }
+        .donate-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #f1c40f, #f39c12); border: none; border-radius: 50%; color: white; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .donate-btn:hover { transform: scale(1.05); }
+
+        /* 후원 모달 */
+        .donate-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .donate-overlay.visible { display: flex; }
+        .donate-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 320px; overflow: hidden; animation: slideUp 0.3s ease; }
+        .donate-header { background: linear-gradient(135deg, #f1c40f, #f39c12); padding: 20px; text-align: center; }
+        .donate-header h2 { margin: 0; font-size: 1.3rem; color: #000; }
+        .donate-header p { margin: 5px 0 0; font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+        .donate-content { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .donate-amount-btn { padding: 15px; background: #252525; border: 2px solid #444; border-radius: 10px; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .donate-amount-btn:hover { border-color: #f1c40f; background: #333; }
+        .donate-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; }
+        .donate-close:hover { background: #444; }
+
+        /* 후원 알림 스타일 */
+        .chat-donate-notice { align-self: center; background: linear-gradient(135deg, #f1c40f, #f39c12); color: #000; padding: 10px 18px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
+        /* 채팅 메시지 숨김 버튼 (관리자용) */
+        .chat-message-wrapper { display: flex; align-items: flex-start; gap: 8px; }
+        .chat-message-wrapper.mine { flex-direction: row-reverse; }
+        .chat-hide-btn { background: #e74c3c; border: none; color: white; width: 24px; height: 24px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; opacity: 0; transition: opacity 0.2s; flex-shrink: 0; margin-top: 8px; }
+        .chat-message-wrapper:hover .chat-hide-btn { opacity: 1; }
+        .chat-message.hidden { opacity: 0.4; background: #1a1a1a; }
+        .chat-message.hidden .chat-message-text { text-decoration: line-through; color: #666; }
+
+        /* 채팅 시스템 알림 */
+        .chat-system-notice { align-self: center; background: #333; color: #aaa; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+        .chat-system-notice .notice-icon { font-size: 0.85rem; }
+
+        /* 전체 채팅 모달 */
+        .all-chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .all-chat-overlay.visible { display: flex; }
+        .all-chat-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+        .all-chat-header { background: linear-gradient(135deg, #8e44ad, #9b59b6); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-radius: 16px 16px 0 0; }
+        .all-chat-header h2 { margin: 0; font-size: 1.1rem; }
+        .all-chat-header-info { font-size: 0.75rem; opacity: 0.8; }
+        .all-chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .all-chat-item { background: #252525; padding: 10px 14px; border-radius: 10px; }
+        .all-chat-item.mine { background: #3498db; }
+        .all-chat-item.hidden-msg { opacity: 0.4; background: #1a1a1a; }
+        .all-chat-text { font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
+        .all-chat-time { font-size: 0.65rem; color: #888; margin-top: 4px; }
+        .all-chat-item.mine .all-chat-time { color: rgba(255,255,255,0.6); }
+        .all-chat-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; border-radius: 0 0 16px 16px; }
+        .all-chat-close:hover { background: #444; }
+        .all-chat-loading { text-align: center; color: #888; padding: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🔥 IGNITION</h1>
+        <p>2026.01.17 @홍대 클럽FF</p>
+    </header>
+</div>
+
+<!-- 현재 재생 중 (상단 고정) -->
+<section class="now-playing" id="now-playing">
+    <div class="now-playing-inner">
+        <div class="now-playing-label">● NOW PLAYING</div>
+        <div class="now-playing-team" id="current-team"></div>
+        <div class="now-playing-song" id="current-song"></div>
+
+        <!-- 열기 게이지 -->
+        <div class="hype-gauge-container">
+            <div class="hype-gauge-header">
+                <span class="hype-gauge-label">🔥 열기 게이지 <button class="hype-toggle-btn" id="hype-toggle-btn" onclick="toggleHypeGauge()">▲ 접기</button></span>
+                <span class="hype-gauge-percent" id="hype-percent">0%</span>
+            </div>
+            <div class="hype-gauge-content" id="hype-gauge-content">
+                <div class="hype-gauge-bar">
+                    <div class="hype-gauge-fill" id="hype-fill"></div>
+                </div>
+                <button class="hype-btn" id="hype-btn" onclick="addHype()">
+                    <span class="fire-icon">🔥</span>
+                    <span>열기 올리기!</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 폭발 이펙트 -->
+<div class="hype-explosion" id="hype-explosion">
+    <div class="hype-explosion-text">🔥 MAX! 🔥</div>
+</div>
+
+<div class="container">
+
+    <!-- 전체 셋리스트 -->
+    <section class="setlist-section" id="setlist"></section>
+
+    <!-- 비밀번호 입력 섹션 -->
+    <section class="password-section" id="password-section" style="display: none;">
+        <p style="color: #888; margin-bottom: 5px;">🔒 관리자 인증</p>
+        <div class="password-input-group">
+            <input type="password" id="admin-password" placeholder="비밀번호 입력">
+            <button onclick="checkPassword()">확인</button>
+        </div>
+        <p class="error-msg" id="error-msg">비밀번호가 올바르지 않습니다.</p>
+    </section>
+
+    <!-- 관리자 특수 컨트롤 -->
+    <section class="admin-controls" id="admin-controls">
+        <div class="admin-controls-title">
+            🎛️ 관리자 컨트롤
+            <span>✓ 인증됨</span>
+        </div>
+        <div class="special-btn-grid">
+            <button class="special-btn" onclick="updateLive('', '')">⏸️ 대기 상태</button>
+            <button class="special-btn" onclick="updateLive('🎉', '공연이 종료되었습니다')">🔚 공연 종료</button>
+        </div>
+        <button class="special-btn" style="width:100%; margin-top:10px; color:#ff6b81;" onclick="resetHearts()">🗑️ 하트 전체 초기화</button>
+
+        <!-- 추첨 관리자 컨트롤 -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
+            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🎟️ 추첨 관리 <span id="admin-raffle-count" style="color: #9b59b6;">(0명 참여중)</span></div>
+            <div class="special-btn-grid">
+                <button class="special-btn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none;" onclick="drawWinner()">🎉 추첨하기</button>
+                <button class="special-btn" onclick="resetRaffle()">🗑️ 참여자 초기화</button>
+            </div>
+        </div>
+
+        <!-- 채팅 관리자 컨트롤 -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
+            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">💬 채팅 관리 <span id="admin-chat-status" style="color: #27ae60;">(활성화)</span></div>
+            <div class="special-btn-grid">
+                <button class="special-btn" id="chat-toggle-btn" style="color:#3498db;" onclick="toggleChatEnabled()">🔒 채팅 비활성화</button>
+                <button class="special-btn" id="chat-visible-btn" style="color:#9b59b6;" onclick="toggleChatVisible()">👁️ 채팅 숨기기</button>
+            </div>
+            <button class="special-btn" style="width:100%; margin-top:10px; color:#e74c3c;" onclick="resetChat()">🗑️ 채팅 전체 삭제</button>
+        </div>
+
+        <!-- 열기 게이지 관리자 컨트롤 -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
+            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🔥 열기 게이지 관리 <span id="admin-hype-target" style="color: #FF6B00;">(목표: 300)</span></div>
+            <div class="special-btn-grid">
+                <button class="special-btn" style="color:#FFD700;" onclick="setHypeTarget()">🎯 목표값 설정</button>
+                <button class="special-btn" style="color:#ff6b81;" onclick="resetHypeExploded()">🗑️ 폭발 기록 초기화</button>
+            </div>
+            <div class="special-btn-grid" style="margin-top:10px;">
+                <button class="special-btn" style="color:#FF4500;" onclick="triggerManualExplosion()">🔥 불지르기</button>
+                <button class="special-btn" style="color:#666;" onclick="turnOffExplosion()">💨 불끄기</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- 추첨 플로팅 버튼 -->
+<button class="raffle-fab" id="raffle-fab" onclick="openRaffle()">🎟️</button>
+
+<!-- 채팅 플로팅 버튼 -->
+<button class="chat-fab" id="chat-fab" onclick="openChat()">
+    💬
+    <span class="unread-badge" id="unread-badge">0</span>
+</button>
+
+<!-- 리더보드 플로팅 버튼 -->
+<button class="leaderboard-fab" onclick="openLeaderboard()">🏆</button>
+
+<!-- 채팅 모달 -->
+<div class="chat-overlay" id="chat-overlay" onclick="closeChat(event)">
+    <div class="chat-modal" onclick="event.stopPropagation()">
+        <div class="chat-header">
+            <div>
+                <h2>💬 실시간 채팅</h2>
+                <div class="chat-header-info">최대 30자 · 10초 쿨타임</div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button onclick="openAllChat()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer;">전체 조회</button>
+                <button class="chat-close-btn" onclick="closeChat()">×</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">아직 메시지가 없습니다</div>
+        </div>
+        <div class="chat-cooldown" id="chat-cooldown">메시지를 보내려면 잠시 기다려주세요</div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chat-input" placeholder="메시지 입력 (최대 30자)" maxlength="30" onkeypress="handleChatKeypress(event)">
+            <button class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">➤</button>
+            <button class="donate-btn" onclick="openDonateModal()">$</button>
+        </div>
+    </div>
+</div>
+
+<!-- 후원 모달 -->
+<div class="donate-overlay" id="donate-overlay" onclick="closeDonateModal(event)">
+    <div class="donate-modal" onclick="event.stopPropagation()">
+        <div class="donate-header">
+            <h2>💸 후원하기</h2>
+            <p>공연팀을 응원해주세요!</p>
+        </div>
+        <div class="donate-content">
+            <button class="donate-amount-btn" onclick="sendDonation(1000)">1,000원</button>
+            <button class="donate-amount-btn" onclick="sendDonation(2000)">2,000원</button>
+            <button class="donate-amount-btn" onclick="sendDonation(5000)">5,000원</button>
+            <button class="donate-amount-btn" onclick="sendDonation(10000)">10,000원</button>
+        </div>
+        <button class="donate-close" onclick="closeDonateModal()">닫기</button>
+    </div>
+</div>
+
+<!-- 추첨 모달 -->
+<div class="raffle-overlay" id="raffle-overlay" onclick="closeRaffle(event)">
+    <div class="raffle-modal" onclick="event.stopPropagation()">
+        <div class="raffle-header" id="raffle-header">
+            <h2>🎟️ 추첨 참여</h2>
+            <p>버튼을 눌러 추첨에 참여하세요!</p>
+        </div>
+        <div class="raffle-content">
+            <div class="raffle-status" id="raffle-status">참여하면 번호를 받아요</div>
+            <div class="raffle-number" id="raffle-number">-</div>
+            <button class="raffle-join-btn" id="raffle-join-btn" onclick="joinRaffle()">추첨 참여하기</button>
+            <div class="raffle-participant-count" id="raffle-participant-count">현재 참여자: 0명</div>
+
+            <!-- 관리자 전용 -->
+            <div class="raffle-admin" id="raffle-admin" style="display: none;">
+                <div class="raffle-admin-title">🔒 관리자 전용</div>
+                <button class="raffle-draw-btn" onclick="drawWinner()">🎉 추첨하기!</button>
+                <button class="raffle-reset-btn" onclick="resetRaffle()">참여자 초기화</button>
+            </div>
+        </div>
+        <button class="raffle-close" onclick="closeRaffle()">닫기</button>
+    </div>
+</div>
+
+<!-- 당첨 결과 모달 -->
+<div class="winner-overlay" id="winner-overlay" onclick="closeWinner()">
+    <div class="winner-modal">
+        <div class="winner-icon" id="winner-icon">🎊</div>
+        <div class="winner-label">당첨 번호</div>
+        <div class="winner-number" id="winner-number">000</div>
+        <div class="my-number-section" id="my-number-section">
+            <div class="my-number-label">내 번호</div>
+            <div class="my-number" id="my-number-display">-</div>
+        </div>
+        <div class="winner-result" id="winner-result"></div>
+        <button class="winner-close" onclick="closeWinner()">확인</button>
+    </div>
+</div>
+
+<!-- 리더보드 모달 -->
+<div class="leaderboard-overlay" id="leaderboard-overlay" onclick="closeLeaderboard(event)">
+    <div class="leaderboard-modal" onclick="event.stopPropagation()">
+        <div class="leaderboard-header">
+            <h2>🏆 하트 랭킹</h2>
+            <p>가장 많은 사랑을 받은 곡</p>
+        </div>
+        <div class="leaderboard-content" id="leaderboard-content">
+            <div class="leaderboard-empty">아직 하트가 없습니다</div>
+        </div>
+        <button class="leaderboard-close" onclick="closeLeaderboard()">닫기</button>
+    </div>
+</div>
+
+<!-- 전체 채팅 모달 -->
+<div class="all-chat-overlay" id="all-chat-overlay" onclick="closeAllChat(event)">
+    <div class="all-chat-modal" onclick="event.stopPropagation()">
+        <div class="all-chat-header">
+            <div>
+                <h2>📜 전체 채팅 기록</h2>
+                <div class="all-chat-header-info" id="all-chat-count">불러오는 중...</div>
+            </div>
+            <button class="chat-close-btn" onclick="closeAllChat()">×</button>
+        </div>
+        <div class="all-chat-messages" id="all-chat-messages">
+            <div class="all-chat-loading">불러오는 중...</div>
+        </div>
+        <button class="all-chat-close" onclick="closeAllChat()">닫기</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAc3yxKWbhe2wXo2yXJTTRsHC7lfICPlvY",
+        authDomain: "ignition-f1bbe.firebaseapp.com",
+        databaseURL: "https://ignition-f1bbe-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ignition-f1bbe",
+        storageBucket: "ignition-f1bbe.firebasestorage.app",
+        messagingSenderId: "683379402225",
+        appId: "1:683379402225:web:43175ebf42a1842e559050"
+    };
+
+    const ADMIN_PASSWORD = "2026";
+    const RESET_PASSWORD = "1026";
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let currentTeam = '';
+    let currentSong = '';
+    let isAdmin = false;
+
+    // 셋리스트 데이터
+    const playlist = [
+        {
+            team: "피버스 Phoebus",
+            members: [
+                { part: "Vocal", names: "방준혁 우지성 박한음" },
+                { part: "Guitar", names: "김세진 김아인 김유리 오민호" },
+                { part: "Keyboard", names: "백다인" },
+                { part: "Bass", names: "김남휘 김재석 박진원 최원호" },
+                { part: "Drum", names: "김동욱 강화윤 이도헌" }
+            ],
+            songs: ["빨간 피터", "wish", "KIDS", "우리의 밤은 당신의 낮보다 아름답다", "rengoku.", "담배가게 아가씨"]
+        },
+        {
+            team: "피터스앤진스 Peters and Jeans",
+            members: [
+                { part: "Vocal", names: "박시현" },
+                { part: "Guitar", names: "박지원" },
+                { part: "Keyboard", names: "박민석" },
+                { part: "Bass", names: "한지우" },
+                { part: "Drum", names: "안승환" }
+            ],
+            songs: ["Drive It Like You Stole It", "Cigarettes & Alcohol", "곁에", "연못", "Radio", "Supernatural"]
+        },
+        {
+            team: "히포루 Hipporu",
+            members: [
+                { part: "Vocal", names: "이해인" },
+                { part: "Guitar", names: "한재민 장재윤" },
+                { part: "Keyboard", names: "박이랑" },
+                { part: "Bass", names: "정서현" },
+                { part: "Drum", names: "엄지훈" }
+            ],
+            songs: ["Last Day", "새벽별", "오리날다", "Blue Bird", "네버엔딩스토리", "몽유병"]
+        },
+        {
+            team: "인스페이즈 In Spades",
+            members: [
+                { part: "Vocal", names: "배지원 고준영" },
+                { part: "Guitar", names: "한성민 홍지호" },
+                { part: "Bass", names: "황수정" },
+                { part: "Drum", names: "송하민" }
+            ],
+            songs: ["폭포", "Michael", "악어모자", "무리무리!", "녹슬지 않을 날", "Not a Dream"]
+        }
+    ];
+
+    // 페이지 로드 시 셋리스트 생성
+    function generateSetlist() {
+        const setlistDiv = document.getElementById('setlist');
+        setlistDiv.innerHTML = '';
+
+        playlist.forEach(item => {
+            const block = document.createElement('div');
+            block.className = 'team-block';
+            block.dataset.team = item.team;
+
+            let songsHTML = '';
+            item.songs.forEach((song, index) => {
+                const songId = generateSongId(item.team, song);
+                songsHTML += `
+                    <div class="song-item" data-team="${item.team}" data-song="${song}" data-song-id="${songId}" onclick="handleSongClick('${item.team}', '${song.replace(/'/g, "\\'")}')">
+                        <div class="song-number">${index + 1}</div>
+                        <div class="song-title">${song}</div>
+                        <div class="playing-icon">🎵</div>
+                        <button class="heart-btn" onclick="event.stopPropagation(); addHeart('${songId}', this)">
+                            ❤️ <span class="heart-count" id="heart-${songId}">0</span>
+                        </button>
+                    </div>
+                `;
+            });
+
+            block.innerHTML = `
+                <div class="team-header">
+                    <span class="team-name">${item.team}</span>
+                    <span class="team-badge">NOW</span>
+                </div>
+                <div class="team-members">
+                    ${item.members.map(m => {
+                        const nameList = m.names.split(' ');
+                        const formatted = nameList.length >= 3
+                            ? nameList.map((n, i) => (i > 0 && i % 2 === 0) ? '<br>' + n : n).join(' ').replace(/ <br>/g, '<br>')
+                            : m.names;
+                        return `<div class="member-item"><span class="part">${m.part}</span><span class="names">${formatted}</span></div>`;
+                    }).join('')}
+                </div>
+                <div class="song-list">${songsHTML}</div>
+            `;
+
+            setlistDiv.appendChild(block);
+        });
+    }
+
+    // 곡 클릭 핸들러 (관리자만)
+    function handleSongClick(team, song) {
+        if (isAdmin) {
+            updateLive(team, song);
+        }
+    }
+
+    // Firebase 실시간 업데이트 감시
+    let lastSongChangeTime = 0;
+    database.ref('liveStatus').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const prevSong = currentSong;
+        const prevTeam = currentTeam;
+
+        if (data) {
+            currentTeam = data.team || '';
+            currentSong = data.song || '';
+
+            // 팀이 바뀌면 해당 팀의 열기 게이지 로드
+            if (currentTeam && currentTeam !== prevTeam && currentTeam !== '🎉') {
+                loadTeamHypeCount(currentTeam);
+            }
+
+            // 곡이 변경되었고, 새로운 곡이 있을 때 채팅에 알림
+            const now = Date.now();
+            if (data.updatedAt && data.updatedAt > lastSongChangeTime && currentSong && currentSong !== prevSong) {
+                lastSongChangeTime = data.updatedAt;
+                // 공연 종료가 아닌 경우에만 알림
+                if (currentTeam !== '🎉') {
+                    addSongChangeNotice(currentTeam, currentSong);
+                }
+            }
+        } else {
+            currentTeam = '';
+            currentSong = '';
+        }
+        updateDisplay();
+        updateHypeButtonState(); // 팀 변경 시 버튼 상태 업데이트
+    });
+
+    // 화면 업데이트
+    function updateDisplay() {
+        const nowPlaying = document.getElementById('now-playing');
+        const currentTeamEl = document.getElementById('current-team');
+        const currentSongEl = document.getElementById('current-song');
+
+        // 현재 재생 중 표시
+        if (currentTeam && currentSong && currentTeam !== '🎉') {
+            nowPlaying.classList.add('visible');
+            document.body.classList.add('has-now-playing');
+            currentTeamEl.innerText = currentTeam;
+            currentSongEl.innerText = currentSong;
+        } else if (currentTeam === '🎉') {
+            nowPlaying.classList.add('visible');
+            document.body.classList.add('has-now-playing');
+            currentTeamEl.innerText = '';
+            currentSongEl.innerText = currentSong;
+        } else {
+            nowPlaying.classList.remove('visible');
+            document.body.classList.remove('has-now-playing');
+        }
+
+        // 모든 곡 초기화
+        document.querySelectorAll('.song-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelectorAll('.team-block').forEach(block => {
+            block.classList.remove('has-active');
+        });
+
+        // 현재 곡 강조
+        if (currentTeam && currentSong) {
+            const activeItem = document.querySelector(`.song-item[data-team="${currentTeam}"][data-song="${currentSong}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+                activeItem.closest('.team-block').classList.add('has-active');
+
+                // 현재 곡으로 스크롤 (부드럽게)
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    // URL 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdminMode = urlParams.has('admin');
+
+    if (isAdminMode) {
+        document.getElementById('password-section').style.display = 'block';
+        document.getElementById('admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPassword();
+        });
+    }
+
+    // 비밀번호 확인
+    function checkPassword() {
+        const input = document.getElementById('admin-password').value;
+        const errorMsg = document.getElementById('error-msg');
+
+        if (input === ADMIN_PASSWORD) {
+            isAdmin = true;
+            document.getElementById('password-section').style.display = 'none';
+            document.getElementById('admin-controls').classList.add('visible');
+            document.getElementById('setlist').classList.add('admin-mode');
+        } else {
+            errorMsg.style.display = 'block';
+            document.getElementById('admin-password').value = '';
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 2000);
+        }
+    }
+
+    // Firebase 업데이트
+    function updateLive(teamName, songName) {
+        database.ref('liveStatus').set({
+            team: teamName,
+            song: songName,
+            updatedAt: Date.now()
+        });
+    }
+
+    // 곡 ID 생성 (Firebase 키로 사용)
+    function generateSongId(team, song) {
+        return btoa(encodeURIComponent(team + '_' + song)).replace(/[^a-zA-Z0-9]/g, '');
+    }
+
+    // 하트 로컬 버퍼 (디바운싱용)
+    const heartBuffer = {};
+    const localHeartCounts = {};
+    let flushTimeout = null;
+
+    // 하트 추가 (최적화 버전)
+    function addHeart(songId, btnElement) {
+        // 버튼 애니메이션
+        btnElement.classList.add('clicked');
+        setTimeout(() => btnElement.classList.remove('clicked'), 300);
+
+        // 플로팅 하트 효과
+        createFloatingHeart(btnElement);
+
+        // 로컬 카운트 즉시 증가 (UI 반응성)
+        localHeartCounts[songId] = (localHeartCounts[songId] || 0) + 1;
+        updateHeartDisplay(songId);
+
+        // 버퍼에 추가
+        heartBuffer[songId] = (heartBuffer[songId] || 0) + 1;
+
+        // 디바운싱: 500ms 후에 한번에 전송
+        clearTimeout(flushTimeout);
+        flushTimeout = setTimeout(flushHearts, 500);
+    }
+
+    // 버퍼된 하트를 Firebase에 전송
+    function flushHearts() {
+        const updates = {};
+        Object.keys(heartBuffer).forEach(songId => {
+            if (heartBuffer[songId] > 0) {
+                // 각 곡별로 transaction
+                const count = heartBuffer[songId];
+                database.ref('hearts/' + songId).transaction(current => (current || 0) + count);
+            }
+        });
+        // 버퍼 초기화
+        Object.keys(heartBuffer).forEach(k => heartBuffer[k] = 0);
+    }
+
+    // 하트 표시 업데이트
+    function updateHeartDisplay(songId) {
+        const countEl = document.getElementById('heart-' + songId);
+        if (countEl) {
+            const count = localHeartCounts[songId] || 0;
+            countEl.innerText = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count;
+        }
+    }
+
+    // 플로팅 하트 생성
+    function createFloatingHeart(btnElement) {
+        const rect = btnElement.getBoundingClientRect();
+        const heart = document.createElement('div');
+        heart.className = 'floating-heart';
+        heart.innerText = '❤️';
+        heart.style.left = rect.left + rect.width / 2 - 12 + 'px';
+        heart.style.top = rect.top + 'px';
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1000);
+    }
+
+    // 하트 수 실시간 감시 (곡별로 개별 리스너 - 최적화)
+    function setupHeartListeners() {
+        playlist.forEach(item => {
+            item.songs.forEach(song => {
+                const songId = generateSongId(item.team, song);
+                database.ref('hearts/' + songId).on('value', (snapshot) => {
+                    const serverCount = snapshot.val() || 0;
+                    // 서버 값이 로컬보다 크면 서버 값 사용 (다른 사용자의 하트 반영)
+                    if (serverCount > (localHeartCounts[songId] || 0)) {
+                        localHeartCounts[songId] = serverCount;
+                        updateHeartDisplay(songId);
+                    }
+                });
+            });
+        });
+    }
+
+    // 하트 전체 초기화
+    function resetHearts() {
+        const inputPw = prompt('하트 초기화 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            if (confirm('정말 모든 하트를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
+                database.ref('hearts').remove();
+                Object.keys(localHeartCounts).forEach(k => localHeartCounts[k] = 0);
+                document.querySelectorAll('.heart-count').forEach(el => el.innerText = '0');
+                alert('하트가 초기화되었습니다.');
+            }
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // 리더보드 열기
+    function openLeaderboard() {
+        updateLeaderboard();
+        document.getElementById('leaderboard-overlay').classList.add('visible');
+    }
+
+    // 리더보드 닫기
+    function closeLeaderboard(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('leaderboard-overlay').classList.remove('visible');
+        }
+    }
+
+    // 곡 정보 찾기
+    function findSongInfo(songId) {
+        for (const team of playlist) {
+            for (const song of team.songs) {
+                if (generateSongId(team.team, song) === songId) {
+                    return { song, team: team.team.split(' ')[0] }; // 팀명 첫 단어만
+                }
+            }
+        }
+        return null;
+    }
+
+    // 리더보드 업데이트
+    function updateLeaderboard() {
+        const content = document.getElementById('leaderboard-content');
+
+        // 모든 곡의 하트 수 수집
+        const songs = [];
+        playlist.forEach(team => {
+            team.songs.forEach(song => {
+                const songId = generateSongId(team.team, song);
+                const hearts = localHeartCounts[songId] || 0;
+                if (hearts > 0) {
+                    songs.push({
+                        songId,
+                        song,
+                        team: team.team.split(' ')[0],
+                        hearts
+                    });
+                }
+            });
+        });
+
+        // 하트 수로 정렬
+        songs.sort((a, b) => b.hearts - a.hearts);
+
+        if (songs.length === 0) {
+            content.innerHTML = '<div class="leaderboard-empty">아직 하트가 없습니다</div>';
+            return;
+        }
+
+        // TOP 10만 표시
+        const top10 = songs.slice(0, 10);
+        content.innerHTML = top10.map((item, index) => {
+            const rankClass = index < 3 ? `rank-${index + 1}` : '';
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            return `
+                <div class="leaderboard-item ${rankClass}">
+                    <div class="leaderboard-rank">${medal || (index + 1)}</div>
+                    <div class="leaderboard-info">
+                        <div class="leaderboard-song">${item.song}</div>
+                        <div class="leaderboard-team">${item.team}</div>
+                    </div>
+                    <div class="leaderboard-hearts">❤️ ${item.hearts >= 1000 ? (item.hearts/1000).toFixed(1) + 'k' : item.hearts}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ========== 추첨 기능 ==========
+    let myRaffleNumber = localStorage.getItem('ignition_raffle_number');
+    let raffleParticipants = {};
+
+    // 추첨 모달 열기
+    function openRaffle() {
+        updateRaffleUI();
+        document.getElementById('raffle-overlay').classList.add('visible');
+        // 관리자면 관리자 패널 표시
+        if (isAdmin) {
+            document.getElementById('raffle-admin').style.display = 'block';
+        }
+    }
+
+    // 추첨 모달 닫기
+    function closeRaffle(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('raffle-overlay').classList.remove('visible');
+        }
+    }
+
+    // 추첨 참여
+    function joinRaffle() {
+        if (myRaffleNumber) return; // 이미 참여함
+
+        // 새 번호 발급 (001~999)
+        database.ref('raffle/nextNumber').transaction(current => {
+            return (current || 0) + 1;
+        }, (error, committed, snapshot) => {
+            if (committed) {
+                const number = snapshot.val();
+                const paddedNumber = String(number).padStart(3, '0');
+                myRaffleNumber = paddedNumber;
+                localStorage.setItem('ignition_raffle_number', paddedNumber);
+
+                // Firebase에 참여자 등록
+                database.ref('raffle/participants/' + paddedNumber).set({
+                    joinedAt: Date.now()
+                });
+
+                updateRaffleUI();
+            }
+        });
+    }
+
+    // 추첨 UI 업데이트
+    function updateRaffleUI() {
+        const fab = document.getElementById('raffle-fab');
+        const header = document.getElementById('raffle-header');
+        const status = document.getElementById('raffle-status');
+        const numberEl = document.getElementById('raffle-number');
+        const joinBtn = document.getElementById('raffle-join-btn');
+        const countEl = document.getElementById('raffle-participant-count');
+
+        if (myRaffleNumber) {
+            fab.classList.add('joined');
+            fab.innerText = '✓';
+            header.classList.add('joined');
+            header.querySelector('h2').innerText = '🎟️ 참여 완료!';
+            header.querySelector('p').innerText = '당첨을 기다려주세요';
+            status.innerText = '내 번호';
+            numberEl.innerText = myRaffleNumber;
+            joinBtn.disabled = true;
+            joinBtn.innerText = '참여 완료!';
+        } else {
+            fab.classList.remove('joined');
+            fab.innerText = '🎟️';
+            header.classList.remove('joined');
+            status.innerText = '참여하면 번호를 받아요';
+            numberEl.innerText = '-';
+            joinBtn.disabled = false;
+            joinBtn.innerText = '추첨 참여하기';
+        }
+
+        // 참여자 수 표시
+        const count = Object.keys(raffleParticipants).length;
+        countEl.innerText = `현재 참여자: ${count}명`;
+
+        // 관리자 컨트롤의 참여자 수도 업데이트
+        const adminCountEl = document.getElementById('admin-raffle-count');
+        if (adminCountEl) {
+            adminCountEl.innerText = `(${count}명 참여중)`;
+        }
+    }
+
+    // 참여자 실시간 감시
+    database.ref('raffle/participants').on('value', (snapshot) => {
+        raffleParticipants = snapshot.val() || {};
+        updateRaffleUI();
+    });
+
+    // 당첨자 추첨 (관리자)
+    function drawWinner() {
+        const numbers = Object.keys(raffleParticipants);
+        if (numbers.length === 0) {
+            alert('참여자가 없습니다.');
+            return;
+        }
+
+        // 랜덤 추첨
+        const winnerIndex = Math.floor(Math.random() * numbers.length);
+        const winnerNumber = numbers[winnerIndex];
+
+        // Firebase에 당첨 번호 저장 (모든 접속자에게 알림)
+        database.ref('raffle/winner').set({
+            number: winnerNumber,
+            drawnAt: Date.now()
+        });
+    }
+
+    // 당첨 결과 감시
+    database.ref('raffle/winner').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.number) {
+            showWinner(data.number);
+        }
+    });
+
+    // 당첨 결과 표시
+    function showWinner(number) {
+        const winnerModal = document.querySelector('.winner-modal');
+        const winnerIcon = document.getElementById('winner-icon');
+        const myNumberDisplay = document.getElementById('my-number-display');
+        const winnerResult = document.getElementById('winner-result');
+
+        // 당첨 번호 표시
+        document.getElementById('winner-number').innerText = number;
+
+        // 내 번호 표시
+        if (myRaffleNumber) {
+            myNumberDisplay.innerText = myRaffleNumber;
+
+            // 당첨 여부 확인
+            if (myRaffleNumber === number) {
+                winnerModal.classList.add('is-winner');
+                winnerIcon.innerText = '🎉';
+                winnerResult.className = 'winner-result is-winner';
+                winnerResult.innerText = '🎊 축하합니다! 당첨되셨습니다! 🎊';
+            } else {
+                winnerModal.classList.remove('is-winner');
+                winnerIcon.innerText = '🎊';
+                winnerResult.className = 'winner-result';
+                winnerResult.innerText = '';
+            }
+        } else {
+            myNumberDisplay.innerText = '미참여';
+            winnerModal.classList.remove('is-winner');
+            winnerIcon.innerText = '🎊';
+            winnerResult.className = 'winner-result';
+            winnerResult.innerText = '';
+        }
+
+        document.getElementById('winner-overlay').classList.add('visible');
+        closeRaffle();
+    }
+
+    // 당첨 모달 닫기
+    function closeWinner() {
+        document.getElementById('winner-overlay').classList.remove('visible');
+        // 다음 추첨을 위해 상태 초기화
+        document.querySelector('.winner-modal').classList.remove('is-winner');
+    }
+
+    // 참여자 초기화 (관리자)
+    function resetRaffle() {
+        const inputPw = prompt('참여자 초기화 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            if (confirm('모든 참여자를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
+                database.ref('raffle').remove();
+                localStorage.removeItem('ignition_raffle_number');
+                myRaffleNumber = null;
+                updateRaffleUI();
+                alert('초기화되었습니다.');
+            }
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // ========== 채팅 기능 ==========
+    let chatMessages = [];
+    let lastReadTimestamp = parseInt(localStorage.getItem('ignition_chat_last_read') || '0');
+    let chatCooldown = false;
+    let myChatId = localStorage.getItem('ignition_chat_id');
+    let isChatOpen = false;
+    let chatEnabled = true;
+    let chatVisible = true;
+
+    // 고유 채팅 ID 생성 (처음 한번만)
+    if (!myChatId) {
+        myChatId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('ignition_chat_id', myChatId);
+    }
+
+    // 채팅 활성화 상태 감시
+    database.ref('chatEnabled').on('value', (snapshot) => {
+        chatEnabled = snapshot.val() !== false; // 기본값 true
+        updateChatEnabledUI();
+    });
+
+    // 채팅 표시 상태 감시
+    database.ref('chatVisible').on('value', (snapshot) => {
+        chatVisible = snapshot.val() !== false; // 기본값 true
+        updateChatVisibleUI();
+    });
+
+    // 채팅 활성화 UI 업데이트
+    function updateChatEnabledUI() {
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+        const statusEl = document.getElementById('admin-chat-status');
+        const toggleBtn = document.getElementById('chat-toggle-btn');
+
+        if (chatEnabled) {
+            input.disabled = false;
+            input.placeholder = '메시지 입력 (최대 30자)';
+            if (!chatCooldown) sendBtn.disabled = false;
+            if (statusEl) statusEl.innerText = '(활성화)';
+            if (statusEl) statusEl.style.color = '#27ae60';
+            if (toggleBtn) toggleBtn.innerText = '🔒 채팅 비활성화';
+        } else {
+            input.disabled = true;
+            input.placeholder = '채팅이 비활성화되었습니다';
+            sendBtn.disabled = true;
+            if (statusEl) statusEl.innerText = '(비활성화)';
+            if (statusEl) statusEl.style.color = '#e74c3c';
+            if (toggleBtn) toggleBtn.innerText = '🔓 채팅 활성화';
+        }
+    }
+
+    // 채팅 활성화/비활성화 토글 (관리자)
+    function toggleChatEnabled() {
+        const inputPw = prompt('채팅 관리 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            const newState = !chatEnabled;
+            database.ref('chatEnabled').set(newState);
+            alert(newState ? '채팅이 활성화되었습니다.' : '채팅이 비활성화되었습니다.');
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // 채팅 표시/숨김 토글 (관리자)
+    function toggleChatVisible() {
+        const inputPw = prompt('채팅 관리 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            const newState = !chatVisible;
+            database.ref('chatVisible').set(newState);
+            alert(newState ? '채팅 아이콘이 표시됩니다.' : '채팅 아이콘이 숨겨집니다.');
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // 채팅 표시 UI 업데이트
+    function updateChatVisibleUI() {
+        const chatFab = document.getElementById('chat-fab');
+        const visibleBtn = document.getElementById('chat-visible-btn');
+
+        if (chatVisible) {
+            chatFab.style.display = 'flex';
+            if (visibleBtn) visibleBtn.innerText = '👁️ 채팅 숨기기';
+        } else {
+            chatFab.style.display = 'none';
+            // 채팅창 열려있으면 닫기
+            if (isChatOpen) closeChat();
+            if (visibleBtn) visibleBtn.innerText = '👁️ 채팅 보이기';
+        }
+    }
+
+    // 채팅 모달 열기
+    function openChat() {
+        isChatOpen = true;
+        document.getElementById('chat-overlay').classList.add('visible');
+        document.getElementById('chat-input').focus();
+        // 읽음 처리
+        if (chatMessages.length > 0) {
+            lastReadTimestamp = chatMessages[chatMessages.length - 1].timestamp;
+            localStorage.setItem('ignition_chat_last_read', lastReadTimestamp.toString());
+        }
+        updateUnreadBadge();
+        scrollChatToBottom();
+    }
+
+    // 채팅 모달 닫기
+    function closeChat(event) {
+        if (!event || event.target === event.currentTarget) {
+            isChatOpen = false;
+            document.getElementById('chat-overlay').classList.remove('visible');
+        }
+    }
+
+    // 곡 변경 알림을 채팅에 추가
+    function addSongChangeNotice(team, song) {
+        // 팀명에서 영문명 제거 (예: "피버스 Phoebus" -> "피버스")
+        const teamShort = team.split(' ')[0];
+        database.ref('chat').push({
+            type: 'notice',
+            text: `🎵 ${teamShort} - ${song}`,
+            timestamp: Date.now()
+        });
+    }
+
+    // ========== 후원 기능 ==========
+    function openDonateModal() {
+        document.getElementById('donate-overlay').classList.add('visible');
+    }
+
+    function closeDonateModal(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('donate-overlay').classList.remove('visible');
+        }
+    }
+
+    function sendDonation(amount) {
+        // 채팅에 후원 알림 추가
+        database.ref('chat').push({
+            type: 'donate',
+            amount: amount,
+            timestamp: Date.now()
+        });
+
+        closeDonateModal();
+        alert(`${amount.toLocaleString()}원 후원 감사합니다! 💸`);
+    }
+
+    // 채팅 전송
+    function sendChat() {
+        if (!chatEnabled) {
+            alert('채팅이 비활성화되었습니다.');
+            return;
+        }
+
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+
+        if (!message || chatCooldown) return;
+        if (message.length > 30) {
+            alert('메시지는 30자까지 입력 가능합니다.');
+            return;
+        }
+
+        // Firebase에 메시지 저장
+        database.ref('chat').push({
+            text: message,
+            chatId: myChatId,
+            timestamp: Date.now()
+        });
+
+        input.value = '';
+
+        // 쿨타임 시작 (10초)
+        startCooldown();
+    }
+
+    // 엔터키 처리
+    function handleChatKeypress(event) {
+        if (event.key === 'Enter') {
+            sendChat();
+        }
+    }
+
+    // 쿨타임 시작
+    function startCooldown() {
+        chatCooldown = true;
+        const sendBtn = document.getElementById('chat-send-btn');
+        const cooldownEl = document.getElementById('chat-cooldown');
+        sendBtn.disabled = true;
+        cooldownEl.classList.add('visible');
+
+        let remaining = 10;
+        cooldownEl.innerText = `${remaining}초 후에 다시 보낼 수 있습니다`;
+
+        const interval = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(interval);
+                chatCooldown = false;
+                sendBtn.disabled = false;
+                cooldownEl.classList.remove('visible');
+            } else {
+                cooldownEl.innerText = `${remaining}초 후에 다시 보낼 수 있습니다`;
+            }
+        }, 1000);
+    }
+
+    // 채팅 메시지 렌더링
+    function renderChatMessages() {
+        const container = document.getElementById('chat-messages');
+
+        // 숨겨지지 않은 메시지만 필터 (관리자는 전부 볼 수 있음)
+        const visibleMessages = isAdmin
+            ? chatMessages
+            : chatMessages.filter(msg => !msg.hidden);
+
+        if (visibleMessages.length === 0) {
+            container.innerHTML = '<div class="chat-empty">아직 메시지가 없습니다</div>';
+            return;
+        }
+
+        container.innerHTML = visibleMessages.map(msg => {
+            // 시스템 알림 (곡 변경)
+            if (msg.type === 'notice') {
+                return `<div class="chat-system-notice">${escapeHtml(msg.text)}</div>`;
+            }
+
+            // 후원 알림
+            if (msg.type === 'donate') {
+                return `<div class="chat-donate-notice">💸 ${msg.amount.toLocaleString()}원 후원!</div>`;
+            }
+
+            const isMine = msg.chatId === myChatId;
+            const time = new Date(msg.timestamp);
+            const timeStr = time.getHours().toString().padStart(2, '0') + ':' + time.getMinutes().toString().padStart(2, '0');
+            const isHidden = msg.hidden;
+
+            // 관리자면 숨김 버튼 표시
+            const hideBtn = isAdmin
+                ? `<button class="chat-hide-btn" onclick="toggleHideChat('${msg.key}', ${!isHidden})">${isHidden ? '↩' : '×'}</button>`
+                : '';
+
+            return `
+                <div class="chat-message-wrapper ${isMine ? 'mine' : ''}">
+                    ${hideBtn}
+                    <div class="chat-message ${isMine ? 'mine' : ''} ${isHidden ? 'hidden' : ''}">
+                        <div class="chat-message-text">${escapeHtml(msg.text)}</div>
+                        <div class="chat-message-time">${timeStr}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        scrollChatToBottom();
+    }
+
+    // 메시지 숨김/복원 토글 (관리자)
+    function toggleHideChat(msgKey, hide) {
+        if (!isAdmin) return;
+        database.ref('chat/' + msgKey + '/hidden').set(hide);
+    }
+
+    // 전체 채팅 열기
+    function openAllChat() {
+        document.getElementById('all-chat-overlay').classList.add('visible');
+        loadAllChat();
+    }
+
+    // 전체 채팅 닫기
+    function closeAllChat(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('all-chat-overlay').classList.remove('visible');
+        }
+    }
+
+    // 전체 채팅 불러오기
+    function loadAllChat() {
+        const container = document.getElementById('all-chat-messages');
+        const countEl = document.getElementById('all-chat-count');
+
+        container.innerHTML = '<div class="all-chat-loading">불러오는 중...</div>';
+
+        database.ref('chat').orderByChild('timestamp').once('value', (snapshot) => {
+            const data = snapshot.val();
+
+            if (!data) {
+                container.innerHTML = '<div class="all-chat-loading">채팅 기록이 없습니다</div>';
+                countEl.innerText = '0개의 메시지';
+                return;
+            }
+
+            const allMessages = Object.entries(data).map(([key, value]) => ({
+                ...value,
+                key: key
+            })).sort((a, b) => a.timestamp - b.timestamp);
+
+            // 관리자가 아니면 숨겨진 메시지 필터
+            const visibleMessages = isAdmin
+                ? allMessages
+                : allMessages.filter(msg => !msg.hidden);
+
+            countEl.innerText = `${visibleMessages.length}개의 메시지`;
+
+            if (visibleMessages.length === 0) {
+                container.innerHTML = '<div class="all-chat-loading">채팅 기록이 없습니다</div>';
+                return;
+            }
+
+            container.innerHTML = visibleMessages.map(msg => {
+                // 시스템 알림
+                if (msg.type === 'notice') {
+                    return `<div class="chat-system-notice">${escapeHtml(msg.text)}</div>`;
+                }
+
+                // 후원 알림
+                if (msg.type === 'donate') {
+                    return `<div class="chat-donate-notice">💸 ${msg.amount.toLocaleString()}원 후원!</div>`;
+                }
+
+                const isMine = msg.chatId === myChatId;
+                const time = new Date(msg.timestamp);
+                const timeStr = time.getHours().toString().padStart(2, '0') + ':' + time.getMinutes().toString().padStart(2, '0');
+                const isHidden = msg.hidden;
+
+                return `
+                    <div class="all-chat-item ${isMine ? 'mine' : ''} ${isHidden ? 'hidden-msg' : ''}">
+                        <div class="all-chat-text">${escapeHtml(msg.text)}</div>
+                        <div class="all-chat-time">${timeStr}${isHidden ? ' (숨김)' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // 맨 아래로 스크롤
+            container.scrollTop = container.scrollHeight;
+        });
+    }
+
+    // 채팅 전체 삭제 (관리자)
+    function resetChat() {
+        const inputPw = prompt('채팅 삭제 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            if (confirm('모든 채팅을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) {
+                database.ref('chat').remove();
+                alert('채팅이 삭제되었습니다.');
+            }
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // HTML 이스케이프 (XSS 방지)
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 스크롤 맨 아래로
+    function scrollChatToBottom() {
+        const container = document.getElementById('chat-messages');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // 읽지 않은 메시지 배지 업데이트
+    function updateUnreadBadge() {
+        const badge = document.getElementById('unread-badge');
+        const unreadCount = chatMessages.filter(msg => msg.timestamp > lastReadTimestamp && msg.chatId !== myChatId).length;
+
+        if (unreadCount > 0 && !isChatOpen) {
+            badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+            badge.classList.add('visible');
+        } else {
+            badge.classList.remove('visible');
+        }
+    }
+
+    // 채팅 실시간 감시 (최근 20개만)
+    database.ref('chat').orderByChild('timestamp').limitToLast(20).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // key를 메시지에 포함시켜서 저장
+            chatMessages = Object.entries(data).map(([key, value]) => ({
+                ...value,
+                key: key
+            })).sort((a, b) => a.timestamp - b.timestamp);
+        } else {
+            chatMessages = [];
+        }
+        renderChatMessages();
+        updateUnreadBadge();
+
+        // 채팅창 열려있으면 읽음 처리
+        if (isChatOpen && chatMessages.length > 0) {
+            lastReadTimestamp = chatMessages[chatMessages.length - 1].timestamp;
+            localStorage.setItem('ignition_chat_last_read', lastReadTimestamp.toString());
+        }
+    });
+
+    // ========== 열기 게이지 기능 ==========
+    let hypeCount = 0;
+    let hypeTarget = 20; // 테스트용 20, 실제 300
+    let hypeBuffer = 0;
+    let hypeFlushTimeout = null;
+    let lastHypeMaxTime = 0; // 마지막 100% 달성 시간 (중복 알림 방지)
+    let hypeExplodedTeams = {}; // 팀별 폭발 여부 추적
+    let currentHypeListener = null; // 현재 팀의 hypeCount 리스너
+
+    // 열기 게이지 목표값 실시간 감시
+    database.ref('hypeTarget').on('value', (snapshot) => {
+        hypeTarget = snapshot.val() || 20;
+    });
+
+    // 팀별 폭발 여부 실시간 감시
+    database.ref('hypeExplodedTeams').on('value', (snapshot) => {
+        hypeExplodedTeams = snapshot.val() || {};
+        updateHypeButtonState();
+    });
+
+    // 팀별 열기 게이지 로드
+    function loadTeamHypeCount(team) {
+        // 이전 리스너 제거
+        if (currentHypeListener) {
+            database.ref('hypeCount/' + currentHypeListener).off();
+        }
+        currentHypeListener = team;
+
+        // 새 팀의 게이지 리스너 등록
+        database.ref('hypeCount/' + team).on('value', (snapshot) => {
+            hypeCount = snapshot.val() || 0;
+            updateHypeUI();
+
+            // 100% 달성 시 폭발 이펙트 (현재 팀이 아직 폭발 안 했을 때만)
+            if (hypeCount >= hypeTarget && hypeTarget > 0 && currentTeam && !hypeExplodedTeams[currentTeam]) {
+                triggerHypeExplosion();
+            }
+        });
+    }
+
+    // 열기 UI 업데이트
+    function updateHypeUI() {
+        const percent = Math.min(100, Math.round((hypeCount / hypeTarget) * 100));
+        const percentEl = document.getElementById('hype-percent');
+        const fillEl = document.getElementById('hype-fill');
+
+        percentEl.innerText = percent + '%';
+        fillEl.style.width = percent + '%';
+
+        // 80% 이상일 때 글로우 효과
+        if (percent >= 80) {
+            fillEl.classList.add('maxed');
+        } else {
+            fillEl.classList.remove('maxed');
+        }
+
+        // 관리자 목표값 표시 업데이트
+        const adminTargetEl = document.getElementById('admin-hype-target');
+        if (adminTargetEl) {
+            adminTargetEl.innerText = `(목표: ${hypeTarget})`;
+        }
+
+        updateHypeButtonState();
+    }
+
+    // 버튼 상태 업데이트 (팀별 폭발 완료 시 비활성화)
+    function updateHypeButtonState() {
+        const btn = document.getElementById('hype-btn');
+        const fillEl = document.getElementById('hype-fill');
+        const percentEl = document.getElementById('hype-percent');
+        const explosion = document.getElementById('hype-explosion');
+
+        if (currentTeam && hypeExplodedTeams[currentTeam]) {
+            // 이미 폭발한 팀 - 버튼 비활성화 + 100% 유지 + 영구 글로우 효과
+            btn.disabled = true;
+            btn.innerHTML = '<span class="fire-icon">✓</span><span>열기 MAX 달성!</span>';
+            btn.style.opacity = '0.6';
+            fillEl.style.width = '100%';
+            percentEl.innerText = '100%';
+            fillEl.classList.remove('maxed');
+            fillEl.classList.add('maxed-permanent'); // 영구 글로우
+        } else {
+            // MAX가 아닌 팀 - 모든 글로우 효과 제거
+            btn.disabled = false;
+            btn.innerHTML = '<span class="fire-icon">🔥</span><span>열기 올리기!</span>';
+            btn.style.opacity = '1';
+            fillEl.classList.remove('maxed');
+            fillEl.classList.remove('maxed-permanent');
+            explosion.classList.remove('visible'); // 폭발 이펙트도 제거
+        }
+    }
+
+    // 열기 게이지 접기/펼치기
+    let hypeGaugeCollapsed = false;
+    function toggleHypeGauge() {
+        const content = document.getElementById('hype-gauge-content');
+        const btn = document.getElementById('hype-toggle-btn');
+        hypeGaugeCollapsed = !hypeGaugeCollapsed;
+        if (hypeGaugeCollapsed) {
+            content.classList.add('collapsed');
+            btn.textContent = '▼ 펼치기';
+        } else {
+            content.classList.remove('collapsed');
+            btn.textContent = '▲ 접기';
+        }
+    }
+
+    // 열기 추가 (광클 가능)
+    function addHype() {
+        // 이미 폭발한 팀이면 무시
+        if (currentTeam && hypeExplodedTeams[currentTeam]) return;
+
+        // 버튼 애니메이션
+        const btn = document.getElementById('hype-btn');
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => btn.style.transform = '', 100);
+
+        // 버퍼에 추가
+        hypeBuffer++;
+
+        // 로컬 UI 즉시 업데이트 (반응성)
+        hypeCount++;
+        updateHypeUI();
+
+        // 디바운싱: 300ms 후에 한번에 전송
+        clearTimeout(hypeFlushTimeout);
+        hypeFlushTimeout = setTimeout(flushHype, 300);
+    }
+
+    // 버퍼된 열기를 Firebase에 전송 (팀별)
+    function flushHype() {
+        if (hypeBuffer > 0 && currentTeam) {
+            const count = hypeBuffer;
+            hypeBuffer = 0;
+            database.ref('hypeCount/' + currentTeam).transaction(current => (current || 0) + count);
+        }
+    }
+
+    // 폭발 이펙트 트리거
+    function triggerHypeExplosion() {
+        const now = Date.now();
+        // 3초 내 중복 방지
+        if (now - lastHypeMaxTime < 3000) return;
+        if (!currentTeam || hypeExplodedTeams[currentTeam]) return;
+        lastHypeMaxTime = now;
+
+        // 해당 팀 폭발 완료 기록
+        database.ref('hypeExplodedTeams/' + currentTeam).set(true);
+
+        // 폭발 이펙트 표시
+        const explosion = document.getElementById('hype-explosion');
+        explosion.classList.add('visible');
+
+        // 300초 후 숨김 (리셋은 하지 않음 - 팀별 한 번이므로)
+        setTimeout(() => {
+            explosion.classList.remove('visible');
+        }, 300000);
+
+        // 채팅에 MAX 알림 (팀명 포함)
+        const teamShort = currentTeam.split(' ')[0];
+        database.ref('chat').push({
+            type: 'notice',
+            text: `🔥🔥🔥 ${teamShort} 열기 MAX! 🔥🔥🔥`,
+            timestamp: Date.now()
+        });
+    }
+
+    // 관리자: 열기 목표값 설정
+    function setHypeTarget() {
+        const inputPw = prompt('관리자 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            const newTarget = prompt('새로운 목표값을 입력하세요 (현재: ' + hypeTarget + '):', hypeTarget);
+            if (newTarget && !isNaN(parseInt(newTarget)) && parseInt(newTarget) > 0) {
+                database.ref('hypeTarget').set(parseInt(newTarget));
+                alert('목표값이 ' + newTarget + '(으)로 설정되었습니다.');
+            }
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // 관리자: 팀별 폭발 기록 초기화
+    function resetHypeExploded() {
+        const inputPw = prompt('관리자 비밀번호를 입력하세요:');
+        if (inputPw === RESET_PASSWORD) {
+            if (confirm('모든 팀의 폭발 기록과 게이지를 초기화할까요? 각 팀이 다시 열기 MAX를 달성할 수 있게 됩니다.')) {
+                database.ref('hypeExplodedTeams').remove();
+                database.ref('hypeCount').remove(); // 팀별 게이지 모두 삭제
+                // UI 즉시 업데이트
+                hypeCount = 0;
+                hypeExplodedTeams = {};
+                updateHypeUI();
+                updateHypeButtonState();
+                alert('팀별 폭발 기록이 초기화되었습니다.');
+            }
+        } else if (inputPw !== null) {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    }
+
+    // 관리자: 불끄기 (폭발 이펙트 + 글로우 제거)
+    function turnOffExplosion() {
+        // 폭발 이펙트 즉시 제거
+        document.getElementById('hype-explosion').classList.remove('visible');
+        // 글로우 효과 제거
+        const fillEl = document.getElementById('hype-fill');
+        fillEl.classList.remove('maxed');
+        fillEl.classList.remove('maxed-permanent');
+    }
+
+    // 관리자: 불지르기 (수동 폭발 이펙트)
+    function triggerManualExplosion() {
+        // 폭발 이펙트 표시
+        const explosion = document.getElementById('hype-explosion');
+        explosion.classList.add('visible');
+
+        // 글로우 효과 추가
+        const fillEl = document.getElementById('hype-fill');
+        fillEl.classList.add('maxed-permanent');
+    }
+
+    // 초기화
+    generateSetlist();
+    setupHeartListeners();
+</script>
+
+</body>
+</html>
