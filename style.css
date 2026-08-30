@@ -1,5 +1,8 @@
 :root { --main-color: #ff4d00; --bg-color: #0a0a0a; --card-bg: #1a1a1a; }
 * { box-sizing: border-box; }
+/* 모바일: 연타 시 더블탭 확대와 300ms 탭 지연을 막고, 버튼 연타 중 글자 선택이 뜨지 않게 한다 */
+html, body { touch-action: manipulation; }
+button, .song-item, .heart-btn, .hype-btn { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 body { background-color: var(--bg-color); color: white; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; text-align: center; min-height: 100vh; }
 .container { max-width: 600px; margin: 0 auto; }
 

@@ -771,6 +771,8 @@ function updateRaffleUI() {
     // 내 번호가 이미 당첨된 경우
     if (myRaffleNumber && raffleDrawn[myRaffleNumber]) {
         status.innerText = '🎊 당첨된 번호입니다';
+    } else if (latestWinner && !myRaffleNumber) {
+        status.innerText = `최근 당첨 번호: ${latestWinner.number}`;
     }
 
     // 참여자 수 표시
@@ -825,15 +827,21 @@ function drawWinner() {
 }
 
 // 당첨 결과 감시
-// 당첨 결과 감시. 이미 닫은 결과나 2시간 지난 결과는 다시 띄우지 않는다.
+// 당첨 결과 감시. 접속한 뒤에 새로 추첨된 결과만 오버레이로 띄운다.
+// 접속 시점에 이미 있던 결과는 띄우지 않고(입장하자마자 당첨 화면이 뜨는 문제), 추첨 모달의 "최근 당첨"으로만 보여준다.
 let currentWinnerDrawnAt = 0;
+let latestWinner = null;
+let winnerLoaded = false;
 database.ref('raffle/winner').on('value', (snapshot) => {
     const data = snapshot.val();
-    if (!data || !data.number) return;
-    if (localStorage.getItem('ignition_seen_winner') === String(data.drawnAt)) return;
-    if (Date.now() - (data.drawnAt || 0) > 2 * 60 * 60 * 1000) return;
-    currentWinnerDrawnAt = data.drawnAt || 0;
-    showWinner(data.number);
+    latestWinner = data && data.number ? data : null;
+    const isNew = winnerLoaded && latestWinner && latestWinner.drawnAt !== currentWinnerDrawnAt
+        && localStorage.getItem('ignition_seen_winner') !== String(latestWinner.drawnAt);
+    winnerLoaded = true;
+    updateRaffleUI();
+    if (!isNew) return;
+    currentWinnerDrawnAt = latestWinner.drawnAt || 0;
+    showWinner(latestWinner.number);
 });
 
 // 당첨 결과 표시
