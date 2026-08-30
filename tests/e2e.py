@@ -48,7 +48,8 @@ async def main():
         screen = await (await b.new_context(viewport={"width": 1280, "height": 720})).new_page()
         for name, pg in (("admin", admin), ("aud", aud), ("screen", screen)):
             pg.on("pageerror", lambda e, n=name: errors.append(f"{n}: {e}"))
-            pg.on("console", lambda m, n=name: errors.append(f"{n} console: {m.text}") if m.type == "error" else None)
+            # 틀린 비밀번호 시도의 400 응답은 정상이라 제외
+            pg.on("console", lambda m, n=name: errors.append(f"{n} console: {m.text}") if m.type == "error" and "status of 400" not in m.text else None)
             pg.on("dialog", lambda d: asyncio.ensure_future(d.accept()))
 
         # 관리자 로그인 (Firebase Authentication)
@@ -77,6 +78,8 @@ async def main():
                 heartJump: await t(() => database.ref('hearts/zzz').set(500)),
             }; }""")
         ok(all(v == "DENIED" for v in denied.values()), f"[권한] 관객의 관리자 경로 쓰기 전부 거부 {denied}")
+        # 거부된 쓰기도 SDK가 로컬에 먼저 반영해 자기 화면에만 오버레이가 잠깐 뜬다. 정리한다.
+        await aud.wait_for_timeout(1000); await aud.evaluate("closeWinner(); closeBest(); currentWinnerDrawnAt = 0;")
 
         # 참여 열기, 곡 진행
         await admin.click("#interaction-open-btn"); await aud.wait_for_timeout(1500)

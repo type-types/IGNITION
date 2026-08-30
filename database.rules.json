@@ -3,27 +3,27 @@
     ".read": true,
     ".write": false,
     "liveStatus": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.hasChildren(['team', 'song', 'updatedAt']) && newData.child('team').isString() && newData.child('song').isString() && newData.child('updatedAt').isNumber()"
     },
     "interactionEnabled": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.isBoolean()"
     },
     "chatEnabled": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.isBoolean()"
     },
     "chatVisible": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.isBoolean()"
     },
     "hypeTarget": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.isNumber() && newData.val() > 0"
     },
     "hypeAuto": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.isBoolean()"
     },
     "presence": {
@@ -33,28 +33,28 @@
       }
     },
     "hearts": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       "$songId": {
         ".write": "(!data.exists() && newData.val() <= 100) || (data.exists() && newData.val() > data.val() && newData.val() - data.val() <= 100)",
         ".validate": "newData.isNumber() && newData.val() >= 0"
       }
     },
     "hypeCount": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       "$team": {
         ".write": "(!data.exists() && newData.val() <= 100) || (data.exists() && newData.val() > data.val() && newData.val() - data.val() <= 100)",
         ".validate": "newData.isNumber() && newData.val() >= 0"
       }
     },
     "hypeExplodedTeams": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       "$team": {
         ".write": "!data.exists()",
         ".validate": "newData.val() == true"
       }
     },
     "raffle": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       "nextNumber": {
         ".write": "(!data.exists() && newData.val() == 1) || (data.exists() && newData.val() == data.val() + 1)",
         ".validate": "newData.isNumber()"
@@ -75,9 +75,9 @@
       }
     },
     "chat": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       "$messageId": {
-        ".write": "!data.exists() && (newData.child('type').val() == 'notice' ? (auth != null && auth.uid == '__ADMIN_UID__') : (newData.hasChild('chatId') && root.child('chatRate').child(newData.child('chatId').val()).val() > now - 5000))",
+        ".write": "!data.exists() && (newData.child('type').val() == 'notice' ? (auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2') : (newData.hasChild('chatId') && root.child('chatRate').child(newData.child('chatId').val()).val() > now - 5000))",
         ".validate": "newData.hasChildren(['timestamp']) && newData.child('timestamp').isNumber()",
         "timestamp": {
           ".validate": "newData.isNumber()"
@@ -103,7 +103,7 @@
       }
     },
     "pinnedNotice": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.hasChildren(['text', 'timestamp']) && newData.child('text').isString() && newData.child('text').val().length <= 100"
     },
     "chatRate": {
@@ -113,10 +113,10 @@
       }
     },
     "setlist": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'"
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'"
     },
     "announcement": {
-      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.hasChildren(['type', 'items', 'at'])"
     }
   }

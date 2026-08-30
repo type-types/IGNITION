@@ -1,5 +1,5 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyAc3yxKWbhe2wXo2yXJTTRsHC7lfICPlvY",
+    apiKey: "AIzaSyAc3yxKWbhe2wXo2yXJTTRsHC7lflCPlvY",
     authDomain: "ignition-f1bbe.firebaseapp.com",
     databaseURL: "https://ignition-f1bbe-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "ignition-f1bbe",
@@ -1375,6 +1375,16 @@ database.ref('hypeExplodedTeams').on('value', (snapshot) => {
     if (hypeExplodedLoaded && currentTeam && hypeExplodedTeams[currentTeam] && !prev[currentTeam]) {
         showHypeExplosion();
     }
+    // MAX 채팅 알림은 알림 쓰기 권한이 있는 관리자 클라이언트가 올린다 (새로 MAX가 된 팀만)
+    if (hypeExplodedLoaded && isAdmin) {
+        Object.keys(hypeExplodedTeams).filter(team => !prev[team]).forEach(team => {
+            database.ref('chat').push({
+                type: 'notice',
+                text: `🔥🔥🔥 ${team.split(' ')[0]} 피버 타임 MAX! 🔥🔥🔥`,
+                timestamp: Date.now()
+            });
+        });
+    }
     hypeExplodedLoaded = true;
     updateHypeUI();
 });
@@ -1400,17 +1410,9 @@ function watchTeamHype(team) {
     });
 }
 
-// MAX 기록은 transaction으로 한 클라이언트만 남기고, 그 클라이언트만 채팅 알림을 올린다
+// MAX 기록은 transaction으로 한 클라이언트만 남긴다 (이미 있으면 중단). 알림은 관리자 리스너가 올린다.
 function markHypeMax(team) {
-    database.ref('hypeExplodedTeams/' + team).transaction(current => current ? undefined : true, (error, committed) => {
-        if (committed) {
-            database.ref('chat').push({
-                type: 'notice',
-                text: `🔥🔥🔥 ${team.split(' ')[0]} 피버 타임 MAX! 🔥🔥🔥`,
-                timestamp: Date.now()
-            });
-        }
-    });
+    database.ref('hypeExplodedTeams/' + team).transaction(current => current ? undefined : true);
 }
 
 function updateHypeUI() {
