@@ -25,6 +25,30 @@
         .now-playing-team { font-size: 0.9rem; opacity: 0.9; }
         .now-playing-song { font-size: 1.5rem; font-weight: 800; margin-top: 3px; }
 
+        /* 피버 타임 (열기 게이지) */
+        .hype-gauge { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .hype-gauge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.75rem; }
+        .hype-toggle-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer; padding: 2px 8px; }
+        .hype-gauge-percent { font-weight: bold; font-size: 0.85rem; }
+        .hype-gauge-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 120px; opacity: 1; }
+        .hype-gauge-content.collapsed { max-height: 0; opacity: 0; }
+        .hype-gauge-bar { background: rgba(0,0,0,0.3); border-radius: 10px; height: 16px; overflow: hidden; }
+        .hype-gauge-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FF6B00, #FF0000); border-radius: 10px; transition: width 0.2s ease; }
+        .hype-gauge-fill.hot { box-shadow: 0 0 12px #FFD700; }
+        .hype-gauge-fill.maxed { animation: hypeGlow 1s ease-in-out infinite alternate; }
+        @keyframes hypeGlow { from { box-shadow: 0 0 8px #FFD700; } to { box-shadow: 0 0 20px #FF6B00; } }
+        .hype-btn { margin-top: 10px; width: 100%; padding: 10px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; color: white; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+        .hype-btn:active { transform: scale(0.95); }
+        .hype-btn:disabled { opacity: 0.6; cursor: default; }
+        .hype-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* 피버 타임 폭발 이펙트: 4초 동안 한 번만 재생 */
+        .hype-explosion { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 400; display: none; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, rgba(255,107,0,0.15), rgba(255,0,0,0.55)); }
+        .hype-explosion.visible { display: flex; animation: explosionFade 4s ease forwards; }
+        .hype-explosion-text { font-size: 3.5rem; font-weight: 900; color: white; text-shadow: 0 0 30px #FFD700, 0 0 60px #FF6B00; animation: explosionPop 0.6s ease; }
+        @keyframes explosionFade { 0% { opacity: 0; } 10% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes explosionPop { 0% { transform: scale(0.5) rotate(-6deg); } 60% { transform: scale(1.3) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+
         /* 셋리스트 섹션 */
         .setlist-section { text-align: left; margin-bottom: 30px; }
         .team-block { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #333; }
@@ -262,8 +286,25 @@
         <div class="now-playing-label">● NOW PLAYING</div>
         <div class="now-playing-team" id="current-team"></div>
         <div class="now-playing-song" id="current-song"></div>
+
+        <!-- 피버 타임 게이지 -->
+        <div class="hype-gauge" id="hype-gauge">
+            <div class="hype-gauge-header">
+                <span>🔥 피버 타임 <button class="hype-toggle-btn" id="hype-toggle-btn" onclick="toggleHypeGauge()">▲ 접기</button></span>
+                <span class="hype-gauge-percent" id="hype-percent">0%</span>
+            </div>
+            <div class="hype-gauge-content" id="hype-gauge-content">
+                <div class="hype-gauge-bar"><div class="hype-gauge-fill" id="hype-fill"></div></div>
+                <button class="hype-btn" id="hype-btn" onclick="addHype()">🔥 열기 올리기!</button>
+            </div>
+        </div>
     </div>
 </section>
+
+<!-- 피버 타임 폭발 이펙트 -->
+<div class="hype-explosion" id="hype-explosion">
+    <div class="hype-explosion-text">🔥 MAX! 🔥</div>
+</div>
 
 <div class="container">
 
@@ -323,6 +364,19 @@
                 <button class="special-btn" id="chat-visible-btn" style="color:#9b59b6;" onclick="toggleChatVisible()">👁️ 채팅 숨기기</button>
             </div>
             <button class="special-btn" style="width:100%; margin-top:10px; color:#e74c3c;" onclick="resetChat()">🗑️ 채팅 전체 삭제</button>
+        </div>
+
+        <!-- 피버 타임 관리자 컨트롤 -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
+            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🔥 피버 타임 관리 <span id="admin-hype-target" style="color: #FF6B00;">(목표: 300)</span></div>
+            <div class="special-btn-grid">
+                <button class="special-btn" style="color:#FFD700;" onclick="setHypeTarget()">🎯 목표값 설정</button>
+                <button class="special-btn" style="color:#ff6b81;" onclick="resetHype()">🗑️ 게이지 전체 초기화</button>
+            </div>
+            <div class="special-btn-grid" style="margin-top:10px;">
+                <button class="special-btn" style="color:#FF4500;" onclick="forceHypeMax()">🔥 불지르기 (현재 팀 MAX)</button>
+                <button class="special-btn" style="color:#888;" onclick="clearHypeTeam()">💨 불끄기 (현재 팀 해제)</button>
+            </div>
         </div>
     </section>
 </div>
@@ -614,6 +668,9 @@
             currentTeam = '';
             currentSong = '';
         }
+        if (currentTeam !== prevTeam) {
+            watchTeamHype(currentTeam && currentTeam !== '🎉' ? currentTeam : null);
+        }
         updateDisplay();
     });
 
@@ -658,7 +715,18 @@
                 activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
+
+        // 피버 타임 게이지는 곡이 연주 중일 때만
+        document.getElementById('hype-gauge').style.display = (currentTeam && currentTeam !== '🎉') ? '' : 'none';
+        syncNowPlayingPadding();
     }
+
+    // 상단 고정 바 높이만큼 본문 여백을 맞춘다 (게이지 접기/펼치기로 높이가 변함)
+    function syncNowPlayingPadding() {
+        const bar = document.getElementById('now-playing');
+        document.body.style.paddingTop = bar.classList.contains('visible') ? (bar.offsetHeight + 20) + 'px' : '';
+    }
+    window.addEventListener('resize', syncNowPlayingPadding);
 
     // URL 파라미터 확인
     const urlParams = new URLSearchParams(window.location.search);
@@ -1461,6 +1529,159 @@
         }
     });
 
+    // ========== 피버 타임 (열기 게이지) ==========
+    // 관객이 버튼을 연타해 현재 팀의 게이지를 채우고, 목표에 닿으면 전 관객 화면에
+    // 폭발 이펙트가 한 번 터진다. 팀당 한 번만 터지며 기록은 hypeExplodedTeams에 남는다.
+    const HYPE_DEFAULT_TARGET = 300;
+    let hypeTarget = HYPE_DEFAULT_TARGET;
+    let hypeCount = 0;              // 현재 팀 게이지 (로컬 즉시 반영 포함)
+    let hypeBuffer = 0;
+    let hypeFlushTimeout = null;
+    let hypeExplosionTimer = null;
+    let hypeExplodedTeams = {};
+    let hypeExplodedLoaded = false; // 첫 스냅샷에서는 이펙트를 재생하지 않는다 (늦게 접속한 관객 보호)
+    let hypeListenerTeam = null;
+    let hypeGaugeCollapsed = false;
+
+    database.ref('hypeTarget').on('value', (snapshot) => {
+        hypeTarget = snapshot.val() || HYPE_DEFAULT_TARGET;
+        updateHypeUI();
+    });
+
+    database.ref('hypeExplodedTeams').on('value', (snapshot) => {
+        const prev = hypeExplodedTeams;
+        hypeExplodedTeams = snapshot.val() || {};
+        if (hypeExplodedLoaded && currentTeam && hypeExplodedTeams[currentTeam] && !prev[currentTeam]) {
+            showHypeExplosion();
+        }
+        hypeExplodedLoaded = true;
+        updateHypeUI();
+    });
+
+    // 팀이 바뀌면 그 팀의 게이지만 구독한다
+    function watchTeamHype(team) {
+        if (hypeListenerTeam) database.ref('hypeCount/' + hypeListenerTeam).off();
+        hypeListenerTeam = team;
+        hypeCount = 0;
+        hypeBuffer = 0;
+        clearTimeout(hypeFlushTimeout);
+        updateHypeUI();
+        if (!team) return;
+
+        database.ref('hypeCount/' + team).on('value', (snapshot) => {
+            const serverCount = snapshot.val();
+            // 하트와 같은 규칙: 서버 값이 로컬보다 클 때만 반영해 숫자가 뒤로 튀지 않게 한다.
+            // 값이 지워졌으면(관리자 초기화) 0으로 되돌린다.
+            if (serverCount === null || serverCount > hypeCount) hypeCount = serverCount || 0;
+            updateHypeUI();
+            // 서버가 확인한 값으로만 MAX를 판정한다
+            if (serverCount >= hypeTarget && !hypeExplodedTeams[team]) markHypeMax(team);
+        });
+    }
+
+    // MAX 기록은 transaction으로 한 클라이언트만 남기고, 그 클라이언트만 채팅 알림을 올린다
+    function markHypeMax(team) {
+        database.ref('hypeExplodedTeams/' + team).transaction(current => current ? undefined : true, (error, committed) => {
+            if (committed) {
+                database.ref('chat').push({
+                    type: 'notice',
+                    text: `🔥🔥🔥 ${team.split(' ')[0]} 피버 타임 MAX! 🔥🔥🔥`,
+                    timestamp: Date.now()
+                });
+            }
+        });
+    }
+
+    function updateHypeUI() {
+        const maxed = !!(currentTeam && hypeExplodedTeams[currentTeam]);
+        const percent = maxed ? 100 : (hypeTarget > 0 ? Math.min(100, Math.round(hypeCount / hypeTarget * 100)) : 0);
+        const fill = document.getElementById('hype-fill');
+        const btn = document.getElementById('hype-btn');
+        const label = maxed ? '✓ 피버 타임 MAX 달성!' : '🔥 열기 올리기!';
+
+        document.getElementById('hype-percent').innerText = percent + '%';
+        fill.style.width = percent + '%';
+        fill.classList.toggle('hot', !maxed && percent >= 80);
+        fill.classList.toggle('maxed', maxed);
+        btn.disabled = maxed;
+        if (btn.innerText !== label) btn.innerText = label;
+
+        const adminTarget = document.getElementById('admin-hype-target');
+        if (adminTarget) adminTarget.innerText = `(목표: ${hypeTarget})`;
+        syncNowPlayingPadding();
+    }
+
+    function toggleHypeGauge() {
+        hypeGaugeCollapsed = !hypeGaugeCollapsed;
+        document.getElementById('hype-gauge-content').classList.toggle('collapsed', hypeGaugeCollapsed);
+        document.getElementById('hype-toggle-btn').textContent = hypeGaugeCollapsed ? '▼ 펼치기' : '▲ 접기';
+        syncNowPlayingPadding();
+        setTimeout(syncNowPlayingPadding, 350); // 접힘 애니메이션이 끝난 뒤 한 번 더
+    }
+
+    // 열기 올리기 (연타 가능, 300ms 모아서 전송)
+    function addHype() {
+        if (!interactionEnabled) return;
+        if (!hypeListenerTeam || hypeExplodedTeams[hypeListenerTeam]) return;
+
+        hypeCount++;
+        hypeBuffer++;
+        updateHypeUI();
+
+        clearTimeout(hypeFlushTimeout);
+        hypeFlushTimeout = setTimeout(flushHype, 300);
+    }
+
+    function flushHype() {
+        if (hypeBuffer > 0 && hypeListenerTeam) {
+            const count = hypeBuffer;
+            hypeBuffer = 0;
+            database.ref('hypeCount/' + hypeListenerTeam).transaction(current => (current || 0) + count);
+        }
+    }
+
+    function showHypeExplosion() {
+        const el = document.getElementById('hype-explosion');
+        el.classList.remove('visible');
+        void el.offsetWidth; // 애니메이션 재시작
+        el.classList.add('visible');
+        clearTimeout(hypeExplosionTimer);
+        hypeExplosionTimer = setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+
+    // 관리자: 목표값 설정
+    async function setHypeTarget() {
+        if (!(await askResetPassword('관리자 비밀번호를 입력하세요:'))) return;
+        const input = prompt('피버 타임 목표값을 입력하세요 (현재: ' + hypeTarget + '):', hypeTarget);
+        const target = parseInt(input, 10);
+        if (input === null || isNaN(target) || target <= 0) return;
+        database.ref('hypeTarget').set(target);
+        alert('목표값이 ' + target + '(으)로 설정되었습니다.');
+    }
+
+    // 관리자: 모든 팀 게이지와 MAX 기록 초기화
+    async function resetHype() {
+        if (!(await askResetPassword('관리자 비밀번호를 입력하세요:'))) return;
+        if (!confirm('모든 팀의 게이지와 피버 타임 MAX 기록을 초기화할까요?')) return;
+        database.ref('hypeExplodedTeams').remove();
+        database.ref('hypeCount').remove();
+        alert('피버 타임이 초기화되었습니다.');
+    }
+
+    // 관리자: 현재 팀을 강제로 MAX (전 관객 화면에 이펙트)
+    function forceHypeMax() {
+        if (!hypeListenerTeam) { alert('먼저 연주 중인 곡을 선택하세요.'); return; }
+        if (hypeExplodedTeams[hypeListenerTeam]) { alert('이미 MAX인 팀입니다.'); return; }
+        markHypeMax(hypeListenerTeam);
+    }
+
+    // 관리자: 현재 팀 MAX 해제와 게이지 0 (다시 올릴 수 있게)
+    function clearHypeTeam() {
+        if (!hypeListenerTeam) { alert('먼저 연주 중인 곡을 선택하세요.'); return; }
+        database.ref('hypeExplodedTeams/' + hypeListenerTeam).remove();
+        database.ref('hypeCount/' + hypeListenerTeam).remove();
+    }
+
     // ========== 관객 참여 기능 일괄 관리 ==========
     // 관객 참여 기능 상태 감시
     database.ref('interactionEnabled').on('value', (snapshot) => {
@@ -1489,6 +1710,9 @@
 
         // 하트 버튼 상태
         updateHeartButtonsState();
+
+        // 피버 타임 버튼 상태
+        document.getElementById('hype-btn').classList.toggle('disabled', !interactionEnabled);
 
         // 채팅 상태
         updateChatInteractionState();

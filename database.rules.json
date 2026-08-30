@@ -12,6 +12,16 @@
     "chatEnabled":        { ".write": true, ".validate": "newData.isBoolean()" },
     "chatVisible":        { ".write": true, ".validate": "newData.isBoolean()" },
 
+    "hypeTarget": { ".write": true, ".validate": "newData.isNumber() && newData.val() > 0" },
+    "hypeCount": {
+      ".write": true,
+      "$team": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+    },
+    "hypeExplodedTeams": {
+      ".write": true,
+      "$team": { ".validate": "newData.isBoolean()" }
+    },
+
     "hearts": {
       ".write": true,
       "$songId": { ".validate": "newData.isNumber() && newData.val() >= 0" }
