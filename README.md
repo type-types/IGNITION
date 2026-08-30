@@ -111,6 +111,24 @@ Realtime Database 보안 규칙
 
 Firebase 콘솔의 테스트 모드 규칙은 일정 기간 뒤 만료되어 앱이 통째로 멈추므로, 규칙 파일을 저장소에 두고 배포와 함께 올립니다.
 
+테스트
+
+배포 주소에 관리자, 관객, 무대 화면 브라우저를 붙여 로그인, 권한 거부, 곡 진행, 하트, 채팅, 추첨, 피버 타임, 베스트 곡, 셋리스트 편집, 초기화까지 한 번에 검증합니다. 실제 DB에 테스트 데이터를 썼다가 지우므로 공연 중에는 돌리지 않습니다.
+
+```bash
+python3 -m pip install playwright && python3 -m playwright install chromium
+ADMIN_PASSWORD='관리자 비밀번호' python3 tests/e2e.py
+```
+
+공연 리포트
+
+공연이 끝나면 Firebase CLI로 DB를 백업하고 리포트를 만듭니다. 백업 JSON에는 채팅 원문이 들어 있으니 저장소에 올리지 않습니다(`backup/`은 gitignore 대상).
+
+```bash
+firebase database:get / --pretty -o backup/2026-01-17-ignition-db.json
+python3 tools/report.py backup/2026-01-17-ignition-db.json > docs/report-2026-01-17.md
+```
+
 ## 프로젝트 구조
 
 ```
