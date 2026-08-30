@@ -111,6 +111,13 @@
         ".write": "!data.exists() || newData.val() - data.val() >= 10000",
         ".validate": "newData.isNumber() && newData.val() >= now - 2000"
       }
+    },
+    "setlist": {
+      ".write": "auth != null && auth.uid == '__ADMIN_UID__'"
+    },
+    "announcement": {
+      ".write": "auth != null && auth.uid == '__ADMIN_UID__'",
+      ".validate": "newData.hasChildren(['type', 'items', 'at'])"
     }
   }
 }

@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -90,6 +91,19 @@
             <button class="special-btn" onclick="updateLive('🎉', '공연이 종료되었습니다')">🔚 공연 종료</button>
         </div>
         <button class="special-btn" style="width:100%; margin-top:10px; color:#ff6b81;" onclick="resetHearts()">🗑️ 하트 전체 초기화</button>
+        <div class="special-btn-grid" style="margin-top:10px;">
+            <button class="special-btn" onclick="openSetlistEditor()">📝 셋리스트 편집</button>
+            <a class="special-btn" style="text-align:center; text-decoration:none; display:block;" href="?screen" target="_blank">📺 무대 화면 열기</a>
+        </div>
+
+        <!-- 베스트 곡 발표 -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
+            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🏆 베스트 곡 발표 <span id="admin-best-status" style="color:#FFD700;"></span></div>
+            <div class="special-btn-grid">
+                <button class="special-btn" style="background: linear-gradient(135deg, #f39c12, #f1c40f); color:#000; border:none;" onclick="announceBest()">🏆 TOP 3 발표하기</button>
+                <button class="special-btn" onclick="clearBest()">발표 내리기</button>
+            </div>
+        </div>
 
         <!-- 추첨 관리자 컨트롤 -->
         <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
@@ -132,6 +146,68 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- 베스트 곡 발표 오버레이 -->
+<div class="best-overlay" id="best-overlay" onclick="closeBest()">
+    <div class="best-modal" onclick="event.stopPropagation()">
+        <div class="best-title">🏆 오늘의 베스트 곡</div>
+        <div class="best-list" id="best-list"></div>
+        <button class="winner-close" onclick="closeBest()">닫기</button>
+    </div>
+</div>
+
+<!-- 셋리스트 편집기 (관리자) -->
+<div class="editor-overlay" id="editor-overlay" onclick="closeSetlistEditor(event)">
+    <div class="editor-modal" onclick="event.stopPropagation()">
+        <div class="editor-header">
+            <h2>📝 셋리스트 편집</h2>
+            <p>팀 순서, 파트별 멤버, 곡 순서를 JSON으로 편집합니다. 저장하면 모든 화면에 즉시 반영됩니다.</p>
+        </div>
+        <textarea id="editor-text" class="editor-text" spellcheck="false"></textarea>
+        <div class="editor-error" id="editor-error"></div>
+        <div class="editor-actions">
+            <button class="special-btn" onclick="loadDefaultSetlist()">기본값 불러오기</button>
+            <button class="special-btn" style="color:#27ae60;" onclick="saveSetlist()">💾 저장</button>
+            <button class="special-btn" onclick="closeSetlistEditor()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 무대 화면 모드 (?screen) -->
+<div class="screen" id="screen">
+    <div class="screen-main">
+        <div class="screen-title">🔥 IGNITION</div>
+        <div class="screen-now">
+            <div class="screen-label" id="screen-label">● NOW PLAYING</div>
+            <div class="screen-team" id="screen-team"></div>
+            <div class="screen-song" id="screen-song">공연 준비 중</div>
+            <div class="screen-next" id="screen-next"></div>
+        </div>
+        <div class="screen-hype" id="screen-hype">
+            <div class="screen-hype-header"><span>🔥 피버 타임</span><span id="screen-hype-percent">0%</span></div>
+            <div class="hype-gauge-bar screen-hype-bar"><div class="hype-gauge-fill" id="screen-hype-fill"></div></div>
+        </div>
+    </div>
+    <div class="screen-side">
+        <div class="screen-card">
+            <div class="screen-card-title">🏆 하트 TOP 3</div>
+            <div id="screen-top3" class="screen-top3"></div>
+        </div>
+        <div class="screen-card screen-chat-card">
+            <div class="screen-card-title">💬 채팅</div>
+            <div id="screen-pinned" class="screen-pinned"></div>
+            <div id="screen-chat" class="screen-chat"></div>
+        </div>
+        <div class="screen-card screen-join">
+            <div id="screen-qr" class="screen-qr"></div>
+            <div>
+                <div class="screen-join-title">QR을 찍고 참여하세요</div>
+                <div class="screen-url" id="screen-url"></div>
+                <div class="screen-presence" id="screen-presence"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 관리자 고정 조작바 (로그인 시에만 표시) -->

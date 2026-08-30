@@ -303,3 +303,73 @@ body.is-admin .chat-fab { bottom: 152px; }
 .chat-message.mine .chat-message-name { display: none; }
 .all-chat-name { font-size: 0.65rem; color: #888; margin-bottom: 2px; }
 .all-chat-item.mine .all-chat-name { color: rgba(255,255,255,0.7); }
+
+/* 베스트 곡 발표 */
+.best-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+.best-overlay.visible { display: flex; }
+.best-modal { text-align: center; width: 100%; max-width: 420px; animation: winnerPop 0.5s ease; }
+.best-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 20px; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.best-list { display: flex; flex-direction: column; gap: 10px; }
+.best-item { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: #1f1f1f; text-align: left; opacity: 0; animation: bestReveal 0.6s ease forwards; }
+.best-item.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,165,0,0.1)); border: 1px solid rgba(255,215,0,0.5); animation-delay: 2.4s; }
+.best-item.rank-2 { border: 1px solid rgba(192,192,192,0.4); animation-delay: 1.2s; }
+.best-item.rank-3 { border: 1px solid rgba(205,127,50,0.4); animation-delay: 0s; }
+@keyframes bestReveal { from { opacity: 0; transform: translateY(16px) scale(0.95); } to { opacity: 1; transform: none; } }
+.best-rank { font-size: 1.6rem; flex-shrink: 0; }
+.best-song { font-weight: bold; font-size: 1.05rem; }
+.best-team { font-size: 0.75rem; color: #999; margin-top: 2px; }
+.best-hearts { margin-left: auto; color: #ff6b81; font-weight: bold; flex-shrink: 0; }
+
+/* 셋리스트 편집기 */
+.editor-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 260; display: none; align-items: center; justify-content: center; padding: 16px; }
+.editor-overlay.visible { display: flex; }
+.editor-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.editor-header { padding: 16px 20px; border-bottom: 1px solid #333; text-align: left; }
+.editor-header h2 { margin: 0; font-size: 1.1rem; }
+.editor-header p { margin: 6px 0 0; font-size: 0.75rem; color: #888; }
+.editor-text { flex: 1; min-height: 40vh; background: #111; color: #ddd; border: none; padding: 14px; font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; line-height: 1.5; resize: none; outline: none; }
+.editor-error { color: #ff6b6b; font-size: 0.75rem; padding: 0 16px; min-height: 1.2em; text-align: left; }
+.editor-actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #333; }
+.editor-actions .special-btn { flex: 1; padding: 12px 8px; }
+
+/* 무대 화면 모드 */
+.screen { display: none; }
+body.screen-mode { padding: 0 !important; overflow: hidden; }
+body.screen-mode > *:not(#screen):not(#hype-explosion):not(#winner-overlay):not(#best-overlay):not(#conn-banner) { display: none !important; }
+body.screen-mode .screen { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; height: 100vh; padding: 32px; box-sizing: border-box; text-align: left; }
+.screen-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.screen-title { font-size: 2rem; font-weight: 900; letter-spacing: 4px; color: var(--main-color); }
+.screen-now { flex: 1; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(135deg, var(--main-color), #ff6a33); border-radius: 24px; padding: 40px; box-shadow: 0 10px 60px rgba(255,77,0,0.35); }
+.screen-now.idle { background: #1a1a1a; box-shadow: none; }
+.screen-label { font-size: 1.1rem; letter-spacing: 3px; text-transform: uppercase; opacity: 0.9; }
+.screen-team { font-size: 2rem; margin-top: 16px; opacity: 0.95; }
+.screen-song { font-size: 5rem; font-weight: 900; line-height: 1.1; margin-top: 8px; word-break: keep-all; }
+.screen-next { font-size: 1.3rem; margin-top: 24px; opacity: 0.85; }
+.screen-hype { background: var(--card-bg); border-radius: 20px; padding: 24px; }
+.screen-hype.hidden { visibility: hidden; }
+.screen-hype-header { display: flex; justify-content: space-between; font-size: 1.4rem; font-weight: bold; margin-bottom: 14px; }
+.screen-hype-bar { height: 36px; border-radius: 18px; }
+.screen-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.screen-card { background: var(--card-bg); border-radius: 20px; padding: 20px 24px; }
+.screen-card-title { font-size: 1.1rem; color: #999; margin-bottom: 12px; }
+.screen-top3 { display: flex; flex-direction: column; gap: 8px; }
+.screen-top3-item { display: flex; align-items: center; gap: 12px; font-size: 1.3rem; }
+.screen-top3-item .medal { font-size: 1.6rem; }
+.screen-top3-item .song { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen-top3-item .hearts { color: #ff6b81; font-weight: bold; }
+.screen-top3-empty { color: #666; font-size: 1rem; }
+.screen-chat-card { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.screen-pinned { display: none; background: rgba(241,196,15,0.15); color: #f1c40f; border-radius: 10px; padding: 10px 14px; font-size: 1.1rem; margin-bottom: 10px; }
+.screen-pinned.visible { display: block; }
+.screen-chat { flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+.screen-chat-item { font-size: 1.15rem; line-height: 1.4; animation: slideUp 0.3s ease; }
+.screen-chat-item .name { color: #3498db; font-size: 0.85rem; margin-right: 8px; }
+.screen-chat-item.notice { color: #aaa; font-size: 1rem; }
+.screen-chat-item.donate { color: #f1c40f; }
+.screen-join { display: flex; align-items: center; gap: 20px; }
+.screen-qr { width: 120px; height: 120px; background: white; padding: 8px; border-radius: 10px; box-sizing: border-box; flex-shrink: 0; }
+.screen-qr img, .screen-qr canvas { width: 104px !important; height: 104px !important; }
+.screen-join-title { font-size: 1.3rem; font-weight: bold; }
+.screen-url { color: #aaa; font-size: 1rem; margin-top: 4px; }
+.screen-presence { color: #27ae60; font-size: 1rem; margin-top: 8px; }
+@media (max-width: 900px) { body.screen-mode .screen { grid-template-columns: 1fr; height: auto; } .screen-song { font-size: 3rem; } }

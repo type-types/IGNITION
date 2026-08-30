@@ -21,8 +21,11 @@ let currentSong = '';
 let isAdmin = false;
 let interactionEnabled = false; // 관객 참여 기능 활성화 여부 (하트, 채팅, 추첨)
 
-// 셋리스트 데이터
-const playlist = [
+// 배포 주소 (무대 화면 QR)
+const SITE_URL = 'https://ignition-f1bbe.web.app/';
+
+// 셋리스트 기본값. DB의 setlist 경로에 값이 있으면 그것을 쓴다 (관리자 편집).
+const DEFAULT_PLAYLIST = [
     {
         team: "피버스 Phoebus",
         members: [
@@ -67,6 +70,36 @@ const playlist = [
         songs: ["폭포", "Mikael", "악어모자", "무리무리!", "녹슬지 않을 날", "Not a Dream"]
     }
 ];
+
+let playlist = DEFAULT_PLAYLIST;
+let heartRefs = []; // 셋리스트 재구성 시 해제할 하트 리스너
+
+// DB 셋리스트 감시. 형식이 맞으면 교체하고 화면을 다시 만든다.
+let setlistLoaded = false;
+database.ref('setlist').on('value', (snapshot) => {
+    const val = snapshot.val();
+    const next = validateSetlist(val) ? val : DEFAULT_PLAYLIST;
+    const changed = JSON.stringify(next) !== JSON.stringify(playlist);
+    playlist = next;
+    if (changed || !setlistLoaded) rebuildSetlist();
+    setlistLoaded = true;
+});
+
+function validateSetlist(val) {
+    if (!Array.isArray(val) || val.length === 0) return false;
+    return val.every(t => t && typeof t.team === 'string' && t.team.trim()
+        && Array.isArray(t.songs) && t.songs.length > 0 && t.songs.every(s => typeof s === 'string' && s.trim())
+        && Array.isArray(t.members || []) && (t.members || []).every(m => m && typeof m.part === 'string' && typeof m.names === 'string'));
+}
+
+function rebuildSetlist() {
+    heartRefs.forEach(ref => ref.off());
+    heartRefs = [];
+    generateSetlist();
+    setupHeartListeners();
+    updateDisplay();
+    updateInteractionUI();
+}
 
 // 곡 순서 헬퍼
 function flatPlaylist() {
@@ -113,6 +146,135 @@ function updatePresenceUI() {
     document.getElementById('presence-count').innerText = presenceCount > 0 ? `🟢 지금 ${presenceCount}명 접속 중` : '';
     const adminEl = document.getElementById('admin-presence');
     if (adminEl) adminEl.innerText = `접속 ${presenceCount}명`;
+    renderScreen();
+}
+
+// 하트 순위 (리더보드, 베스트 곡 발표, 무대 화면 공용)
+function rankedSongs() {
+    const songs = [];
+    playlist.forEach(team => {
+        team.songs.forEach(song => {
+            const hearts = localHeartCounts[generateSongId(team.team, song)] || 0;
+            if (hearts > 0) songs.push({ song, team: team.team.split(' ')[0], hearts });
+        });
+    });
+    return songs.sort((a, b) => b.hearts - a.hearts);
+}
+function formatHearts(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n); }
+
+// ========== 무대 화면 모드 (?screen) ==========
+const isScreenMode = new URLSearchParams(window.location.search).has('screen');
+let screenRaf = null;
+function initScreenMode() {
+    if (!isScreenMode) return;
+    document.body.classList.add('screen-mode');
+    document.getElementById('screen-url').innerText = SITE_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (window.QRCode) new QRCode(document.getElementById('screen-qr'), { text: SITE_URL, width: 104, height: 104, correctLevel: QRCode.CorrectLevel.M });
+    renderScreen();
+}
+// 여러 리스너가 연달아 호출해도 프레임당 한 번만 그린다
+function renderScreen() {
+    if (!isScreenMode || screenRaf) return;
+    screenRaf = requestAnimationFrame(() => { screenRaf = null; renderScreenNow(); });
+}
+function renderScreenNow() {
+    const playing = !!(currentTeam && currentSong && currentTeam !== '🎉');
+    const now = document.querySelector('.screen-now');
+    now.classList.toggle('idle', !playing);
+    document.getElementById('screen-label').innerText = playing ? '● NOW PLAYING' : (currentTeam === '🎉' ? '● THANK YOU' : '● STAND BY');
+    document.getElementById('screen-team').innerText = playing ? currentTeam : '';
+    document.getElementById('screen-song').innerText = playing ? currentSong : (currentTeam === '🎉' ? currentSong : '공연 준비 중');
+    document.getElementById('screen-next').innerText = playing ? document.getElementById('now-next').innerText : '';
+
+    document.getElementById('screen-hype').classList.toggle('hidden', !playing);
+    document.getElementById('screen-hype-percent').innerText = document.getElementById('hype-percent').innerText;
+    const fill = document.getElementById('screen-hype-fill');
+    const srcFill = document.getElementById('hype-fill');
+    fill.style.width = srcFill.style.width;
+    fill.className = srcFill.className;
+
+    const top3 = rankedSongs().slice(0, 3);
+    document.getElementById('screen-top3').innerHTML = top3.length
+        ? top3.map((s, i) => `<div class="screen-top3-item"><span class="medal">${['🥇', '🥈', '🥉'][i]}</span><span class="song">${escapeHtml(s.song)} <span style="color:#888;font-size:0.8em;">${escapeHtml(s.team)}</span></span><span class="hearts">❤️ ${formatHearts(s.hearts)}</span></div>`).join('')
+        : '<div class="screen-top3-empty">하트를 눌러 응원해 주세요</div>';
+
+    const pinned = document.getElementById('chat-pinned');
+    const sp = document.getElementById('screen-pinned');
+    sp.innerText = pinned.innerText;
+    sp.classList.toggle('visible', pinned.classList.contains('visible'));
+    const recent = chatMessages.filter(m => !m.hidden).slice(-6);
+    document.getElementById('screen-chat').innerHTML = recent.map(m => {
+        if (m.type === 'notice') return `<div class="screen-chat-item notice">${escapeHtml(m.text)}</div>`;
+        if (m.type === 'donate') return `<div class="screen-chat-item donate">💸 ${m.amount.toLocaleString()}원 후원!</div>`;
+        return `<div class="screen-chat-item"><span class="name">${escapeHtml(nicknameOf(m.chatId))}</span>${escapeHtml(m.text)}</div>`;
+    }).join('');
+
+    document.getElementById('screen-presence').innerText = presenceCount > 0 ? `🟢 ${presenceCount}명 참여 중` : '';
+}
+
+// ========== 베스트 곡 발표 ==========
+let currentBestAt = 0;
+database.ref('announcement').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const statusEl = document.getElementById('admin-best-status');
+    if (statusEl) statusEl.innerText = data && data.type === 'best' ? '(발표 중)' : '';
+    if (!data || data.type !== 'best' || !Array.isArray(data.items)) {
+        document.getElementById('best-overlay').classList.remove('visible');
+        return;
+    }
+    if (localStorage.getItem('ignition_seen_best') === String(data.at)) return;
+    if (Date.now() - (data.at || 0) > 2 * 60 * 60 * 1000) return;
+    currentBestAt = data.at || 0;
+    document.getElementById('best-list').innerHTML = data.items.slice(0, 3).map((s, i) =>
+        `<div class="best-item rank-${i + 1}"><span class="best-rank">${['🥇', '🥈', '🥉'][i]}</span><div><div class="best-song">${escapeHtml(s.song)}</div><div class="best-team">${escapeHtml(s.team)}</div></div><span class="best-hearts">❤️ ${formatHearts(s.hearts)}</span></div>`
+    ).join('');
+    document.getElementById('best-overlay').classList.add('visible');
+});
+function announceBest() {
+    const top = rankedSongs().slice(0, 3);
+    if (top.length === 0) { alert('아직 하트가 없습니다.'); return; }
+    if (!confirm(`베스트 곡 TOP ${top.length}을 모든 화면에 발표할까요?\n1위: ${top[0].song} (❤️ ${top[0].hearts})`)) return;
+    database.ref('announcement').set({ type: 'best', items: top, at: Date.now() });
+}
+function clearBest() {
+    database.ref('announcement').remove();
+}
+function closeBest() {
+    if (currentBestAt) localStorage.setItem('ignition_seen_best', String(currentBestAt));
+    document.getElementById('best-overlay').classList.remove('visible');
+}
+
+// ========== 셋리스트 편집 (관리자) ==========
+function openSetlistEditor() {
+    document.getElementById('editor-text').value = JSON.stringify(playlist, null, 2);
+    document.getElementById('editor-error').innerText = '';
+    document.getElementById('editor-overlay').classList.add('visible');
+}
+function closeSetlistEditor(event) {
+    if (!event || event.target === event.currentTarget) document.getElementById('editor-overlay').classList.remove('visible');
+}
+function loadDefaultSetlist() {
+    document.getElementById('editor-text').value = JSON.stringify(DEFAULT_PLAYLIST, null, 2);
+    document.getElementById('editor-error').innerText = '';
+}
+function saveSetlist() {
+    const errorEl = document.getElementById('editor-error');
+    let parsed;
+    try {
+        parsed = JSON.parse(document.getElementById('editor-text').value);
+    } catch (e) {
+        errorEl.innerText = 'JSON 형식 오류: ' + e.message;
+        return;
+    }
+    if (!validateSetlist(parsed)) {
+        errorEl.innerText = '형식이 맞지 않습니다. 각 팀은 team(문자열), members([{part, names}]), songs([문자열]) 을 가져야 합니다.';
+        return;
+    }
+    if (!confirm('셋리스트를 저장하면 모든 화면이 즉시 바뀝니다. 저장할까요?')) return;
+    database.ref('setlist').set(parsed).then(() => {
+        closeSetlistEditor();
+        alert('셋리스트가 저장되었습니다.');
+    }).catch(e => { errorEl.innerText = '저장 실패: ' + e.message; });
 }
 
 // 페이지 로드 시 셋리스트 생성
@@ -146,7 +308,7 @@ function generateSetlist() {
                 <span class="team-badge">NOW</span>
             </div>
             <div class="team-members">
-                ${item.members.map(m => {
+                ${(item.members || []).map(m => {
                     const nameList = m.names.split(' ');
                     const formatted = nameList.length >= 3
                         ? nameList.map((n, i) => (i > 0 && i % 2 === 0) ? '<br>' + n : n).join(' ').replace(/ <br>/g, '<br>')
@@ -254,6 +416,7 @@ function updateDisplay() {
     else barNow.innerText = '대기 중';
 
     syncNowPlayingPadding();
+    renderScreen();
 }
 
 // 현재 곡 경과 시간 (mm:ss)
@@ -430,7 +593,9 @@ function setupHeartListeners() {
     playlist.forEach(item => {
         item.songs.forEach(song => {
             const songId = generateSongId(item.team, song);
-            database.ref('hearts/' + songId).on('value', (snapshot) => {
+            const ref = database.ref('hearts/' + songId);
+            heartRefs.push(ref);
+            ref.on('value', (snapshot) => {
                 const serverCount = snapshot.val();
                 // 서버 값이 로컬보다 크면 서버 값 사용 (다른 사용자의 하트 반영).
                 // 값이 지워졌으면(관리자 초기화) 0으로 되돌린다.
@@ -438,6 +603,7 @@ function setupHeartListeners() {
                     localHeartCounts[songId] = serverCount || 0;
                     updateHeartDisplay(songId);
                     if (document.getElementById('leaderboard-overlay').classList.contains('visible')) updateLeaderboard();
+                    renderScreen();
                 }
             });
         });
@@ -490,25 +656,7 @@ function findSongInfo(songId) {
 function updateLeaderboard() {
     const content = document.getElementById('leaderboard-content');
 
-    // 모든 곡의 하트 수 수집
-    const songs = [];
-    playlist.forEach(team => {
-        team.songs.forEach(song => {
-            const songId = generateSongId(team.team, song);
-            const hearts = localHeartCounts[songId] || 0;
-            if (hearts > 0) {
-                songs.push({
-                    songId,
-                    song,
-                    team: team.team.split(' ')[0],
-                    hearts
-                });
-            }
-        });
-    });
-
-    // 하트 수로 정렬
-    songs.sort((a, b) => b.hearts - a.hearts);
+    const songs = rankedSongs();
 
     if (songs.length === 0) {
         content.innerHTML = '<div class="leaderboard-empty">아직 하트가 없습니다</div>';
@@ -788,6 +936,7 @@ database.ref('pinnedNotice').on('value', (snapshot) => {
     inChat.classList.toggle('visible', !!text);
     const input = document.getElementById('pinned-input');
     if (input && document.activeElement !== input) input.value = text;
+    renderScreen();
 });
 function setPinnedNotice() {
     const text = document.getElementById('pinned-input').value.trim();
@@ -1181,6 +1330,7 @@ database.ref('chat').orderByChild('timestamp').limitToLast(20).on('value', (snap
     }
     renderChatMessages();
     updateUnreadBadge();
+    renderScreen();
 
     // 채팅창 열려있으면 읽음 처리
     if (isChatOpen && chatMessages.length > 0) {
@@ -1283,6 +1433,7 @@ function updateHypeUI() {
     const autoBtn = document.getElementById('hype-auto-btn');
     if (autoBtn) autoBtn.innerText = hypeAuto ? '🤖 자동 목표 켜짐' : '🤖 자동 목표 꺼짐';
     syncNowPlayingPadding();
+    renderScreen();
 }
 
 function toggleHypeGauge() {
@@ -1434,6 +1585,6 @@ function updateRaffleInteractionState() {
 }
 
 // 초기화
-generateSetlist();
-setupHeartListeners();
+rebuildSetlist(); // 기본 셋리스트로 먼저 그리고, DB 값이 오면 교체한다
 updateInteractionUI(); // DB 응답 전에도 참여 버튼을 닫힘 상태로 표시
+initScreenMode();
