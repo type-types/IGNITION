@@ -840,10 +840,11 @@
             item.songs.forEach(song => {
                 const songId = generateSongId(item.team, song);
                 database.ref('hearts/' + songId).on('value', (snapshot) => {
-                    const serverCount = snapshot.val() || 0;
-                    // 서버 값이 로컬보다 크면 서버 값 사용 (다른 사용자의 하트 반영)
-                    if (serverCount > (localHeartCounts[songId] || 0)) {
-                        localHeartCounts[songId] = serverCount;
+                    const serverCount = snapshot.val();
+                    // 서버 값이 로컬보다 크면 서버 값 사용 (다른 사용자의 하트 반영).
+                    // 값이 지워졌으면(관리자 초기화) 0으로 되돌린다.
+                    if (serverCount === null || serverCount > (localHeartCounts[songId] || 0)) {
+                        localHeartCounts[songId] = serverCount || 0;
                         updateHeartDisplay(songId);
                     }
                 });
