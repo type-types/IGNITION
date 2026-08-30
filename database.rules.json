@@ -1,0 +1,43 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": false,
+
+    "liveStatus": {
+      ".write": true,
+      ".validate": "newData.hasChildren(['team', 'song', 'updatedAt']) && newData.child('team').isString() && newData.child('song').isString() && newData.child('updatedAt').isNumber()"
+    },
+
+    "interactionEnabled": { ".write": true, ".validate": "newData.isBoolean()" },
+    "chatEnabled":        { ".write": true, ".validate": "newData.isBoolean()" },
+    "chatVisible":        { ".write": true, ".validate": "newData.isBoolean()" },
+
+    "hearts": {
+      ".write": true,
+      "$songId": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+    },
+
+    "raffle": {
+      ".write": true,
+      "nextNumber": { ".validate": "newData.isNumber() && newData.val() > 0" },
+      "participants": {
+        "$number": { ".validate": "newData.hasChildren(['joinedAt']) && newData.child('joinedAt').isNumber()" }
+      },
+      "winner": { ".validate": "newData.hasChildren(['number', 'drawnAt'])" }
+    },
+
+    "chat": {
+      ".write": true,
+      "$messageId": {
+        ".validate": "newData.hasChildren(['timestamp']) && newData.child('timestamp').isNumber()",
+        "timestamp": { ".validate": "newData.isNumber()" },
+        "text":   { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "type":   { ".validate": "newData.val() == 'notice' || newData.val() == 'donate'" },
+        "amount": { ".validate": "newData.isNumber() && newData.val() > 0" },
+        "chatId": { ".validate": "newData.isString()" },
+        "hidden": { ".validate": "newData.isBoolean()" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

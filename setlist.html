@@ -25,35 +25,6 @@
         .now-playing-team { font-size: 0.9rem; opacity: 0.9; }
         .now-playing-song { font-size: 1.5rem; font-weight: 800; margin-top: 3px; }
 
-        /* 열기 게이지 */
-        .hype-gauge-container { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
-        .hype-toggle-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer; padding: 2px 8px; margin-left: 8px; transition: all 0.2s; }
-        .hype-toggle-btn:hover { color: white; }
-        .hype-gauge-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 200px; opacity: 1; }
-        .hype-gauge-content.collapsed { max-height: 0; opacity: 0; margin-top: 0; }
-        .hype-gauge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .hype-gauge-label { font-size: 0.75rem; opacity: 0.9; }
-        .hype-gauge-percent { font-size: 0.85rem; font-weight: bold; }
-        .hype-gauge-bar { background: rgba(0,0,0,0.3); border-radius: 10px; height: 20px; overflow: hidden; position: relative; }
-        .hype-gauge-fill { height: 100%; background: linear-gradient(90deg, #FFD700, #FF6B00, #FF0000); border-radius: 10px; transition: width 0.3s ease; width: 0%; }
-        .hype-gauge-fill.maxed { animation: gaugeGlow 0.5s ease infinite alternate; }
-        .hype-gauge-fill.maxed-permanent { animation: gaugeGlowPermanent 1s ease-in-out infinite; }
-        @keyframes gaugeGlow { from { box-shadow: 0 0 10px #FFD700; } to { box-shadow: 0 0 25px #FF0000, 0 0 50px #FF6B00; } }
-        @keyframes gaugeGlowPermanent { 0%, 100% { box-shadow: 0 0 15px #FFD700, 0 0 30px #FF6B00; } 50% { box-shadow: 0 0 30px #FF0000, 0 0 60px #FF6B00, 0 0 80px #FFD700; } }
-        .hype-btn { margin-top: 10px; width: 100%; padding: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .hype-btn:hover { background: rgba(255,255,255,0.25); }
-        .hype-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
-        .hype-btn .fire-icon { font-size: 1.2rem; }
-
-        /* 폭발 이펙트 오버레이 */
-        .hype-explosion { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 400; display: none; align-items: center; justify-content: center; pointer-events: none; box-shadow: inset 0 0 100px 50px rgba(255,0,0,0.8), inset 0 0 200px 100px rgba(255,107,0,0.5); animation: explosionGlow 300s ease forwards, explosionShake 0.5s ease-in-out; }
-        .hype-explosion.visible { display: flex; }
-        .hype-explosion-text { font-size: 3.5rem; font-weight: 900; color: white; text-shadow: 0 0 30px #FFD700, 0 0 60px #FF6B00, 0 0 100px #FF0000; animation: explosionPop 0.5s ease, textPulse 0.3s ease infinite; }
-        @keyframes explosionGlow { 0% { box-shadow: inset 0 0 150px 80px rgba(255,0,0,0.9), inset 0 0 300px 150px rgba(255,107,0,0.7); } 2% { box-shadow: inset 0 0 100px 50px rgba(255,0,0,0.8), inset 0 0 200px 100px rgba(255,107,0,0.5); } 98% { box-shadow: inset 0 0 80px 40px rgba(255,0,0,0.6), inset 0 0 150px 80px rgba(255,107,0,0.3); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
-        @keyframes explosionShake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); } 20%, 40%, 60%, 80% { transform: translateX(8px); } }
-        @keyframes explosionPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes textPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-
         /* 셋리스트 섹션 */
         .setlist-section { text-align: left; margin-bottom: 30px; }
         .team-block { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #333; }
@@ -256,7 +227,6 @@
 
         /* 채팅 시스템 알림 */
         .chat-system-notice { align-self: center; background: #333; color: #aaa; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
-        .chat-system-notice .notice-icon { font-size: 0.85rem; }
 
         /* 전체 채팅 모달 */
         .all-chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -294,11 +264,6 @@
         <div class="now-playing-song" id="current-song"></div>
     </div>
 </section>
-
-<!-- 폭발 이펙트 -->
-<div class="hype-explosion" id="hype-explosion">
-    <div class="hype-explosion-text"></div>
-</div>
 
 <div class="container">
 
@@ -358,19 +323,6 @@
                 <button class="special-btn" id="chat-visible-btn" style="color:#9b59b6;" onclick="toggleChatVisible()">👁️ 채팅 숨기기</button>
             </div>
             <button class="special-btn" style="width:100%; margin-top:10px; color:#e74c3c;" onclick="resetChat()">🗑️ 채팅 전체 삭제</button>
-        </div>
-
-        <!-- 열기 게이지 관리자 컨트롤 -->
-        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
-            <div style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">🔥 열기 게이지 관리 <span id="admin-hype-target" style="color: #FF6B00;">(목표: 300)</span></div>
-            <div class="special-btn-grid">
-                <button class="special-btn" style="color:#FFD700;" onclick="setHypeTarget()">🎯 목표값 설정</button>
-                <button class="special-btn" style="color:#ff6b81;" onclick="resetHypeExploded()">🗑️ 폭발 기록 초기화</button>
-            </div>
-            <div class="special-btn-grid" style="margin-top:10px;">
-                <button class="special-btn" style="color:#FF4500;" onclick="triggerManualExplosion()">🔥 불지르기</button>
-                <button class="special-btn" style="color:#666;" onclick="turnOffExplosion()">💨 불끄기</button>
-            </div>
         </div>
     </section>
 </div>
@@ -510,8 +462,25 @@
         appId: "1:683379402225:web:43175ebf42a1842e559050"
     };
 
-    const ADMIN_PASSWORD = "2026";
-    const RESET_PASSWORD = "1026";
+    // 비밀번호는 SHA-256 해시로만 보관한다. 새 비밀번호의 해시는 터미널에서
+    //   printf '새비밀번호' | shasum -a 256
+    // 로 만들어 아래 값을 교체한다.
+    const ADMIN_PASSWORD_HASH = "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab";
+    const RESET_PASSWORD_HASH = "582c0168ba17eac49642bc85ae623204069e8d6ea06cf45af11e7de46ea31d18";
+
+    async function sha256(text) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // 초기화류 작업 전 비밀번호 확인. 취소하면 false, 틀리면 알림 후 false
+    async function askResetPassword(message) {
+        const input = prompt(message);
+        if (input === null) return false;
+        if (await sha256(input) === RESET_PASSWORD_HASH) return true;
+        alert('비밀번호가 틀렸습니다.');
+        return false;
+    }
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
@@ -632,11 +601,6 @@
             currentTeam = data.team || '';
             currentSong = data.song || '';
 
-            // 팀이 바뀌면 해당 팀의 열기 게이지 로드
-            if (currentTeam && currentTeam !== prevTeam && currentTeam !== '🎉') {
-                loadTeamHypeCount(currentTeam);
-            }
-
             // 곡이 변경되었고, 새로운 곡이 있을 때 채팅에 알림
             const now = Date.now();
             if (data.updatedAt && data.updatedAt > lastSongChangeTime && currentSong && currentSong !== prevSong) {
@@ -651,7 +615,6 @@
             currentSong = '';
         }
         updateDisplay();
-        updateHypeButtonState(); // 팀 변경 시 버튼 상태 업데이트
     });
 
     // 화면 업데이트
@@ -709,11 +672,11 @@
     }
 
     // 비밀번호 확인
-    function checkPassword() {
+    async function checkPassword() {
         const input = document.getElementById('admin-password').value;
         const errorMsg = document.getElementById('error-msg');
 
-        if (input === ADMIN_PASSWORD) {
+        if (await sha256(input) === ADMIN_PASSWORD_HASH) {
             isAdmin = true;
             document.getElementById('password-section').style.display = 'none';
             document.getElementById('admin-controls').classList.add('visible');
@@ -821,25 +784,21 @@
     }
 
     // 하트 전체 초기화
-    function resetHearts() {
-        const inputPw = prompt('하트 초기화 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            if (confirm('정말 모든 하트를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
-                // 버퍼에 남아있는 하트 전송 취소
-                clearTimeout(flushTimeout);
-                Object.keys(heartBuffer).forEach(k => heartBuffer[k] = 0);
+    async function resetHearts() {
+        if (!(await askResetPassword('하트 초기화 비밀번호를 입력하세요:'))) return;
+        if (!confirm('정말 모든 하트를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) return;
 
-                // Firebase 삭제
-                database.ref('hearts').remove();
+        // 버퍼에 남아있는 하트 전송 취소
+        clearTimeout(flushTimeout);
+        Object.keys(heartBuffer).forEach(k => heartBuffer[k] = 0);
 
-                // 로컬 카운트 초기화
-                Object.keys(localHeartCounts).forEach(k => localHeartCounts[k] = 0);
-                document.querySelectorAll('.heart-count').forEach(el => el.innerText = '0');
-                alert('하트가 초기화되었습니다.');
-            }
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
+        // Firebase 삭제
+        database.ref('hearts').remove();
+
+        // 로컬 카운트 초기화
+        Object.keys(localHeartCounts).forEach(k => localHeartCounts[k] = 0);
+        document.querySelectorAll('.heart-count').forEach(el => el.innerText = '0');
+        alert('하트가 초기화되었습니다.');
     }
 
     // 리더보드 열기
@@ -990,11 +949,11 @@
             fab.classList.remove('joined');
             fab.innerText = '🎟️';
             header.classList.remove('joined');
-            status.innerText = '';
+            status.innerText = '관리자가 열면 참여할 수 있어요';
             numberEl.innerText = '-';
             joinBtn.disabled = true;
             joinBtn.classList.add('interaction-disabled');
-            joinBtn.innerText = '16:30부터 추첨 참여가 가능합니다';
+            joinBtn.innerText = '아직 참여할 수 없습니다';
         } else {
             fab.classList.remove('joined');
             fab.innerText = '🎟️';
@@ -1096,19 +1055,15 @@
     }
 
     // 참여자 초기화 (관리자)
-    function resetRaffle() {
-        const inputPw = prompt('참여자 초기화 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            if (confirm('모든 참여자를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
-                database.ref('raffle').remove();
-                localStorage.removeItem('ignition_raffle_number');
-                myRaffleNumber = null;
-                updateRaffleUI();
-                alert('초기화되었습니다.');
-            }
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
+    async function resetRaffle() {
+        if (!(await askResetPassword('참여자 초기화 비밀번호를 입력하세요:'))) return;
+        if (!confirm('모든 참여자를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+
+        database.ref('raffle').remove();
+        localStorage.removeItem('ignition_raffle_number');
+        myRaffleNumber = null;
+        updateRaffleUI();
+        alert('초기화되었습니다.');
     }
 
     // ========== 채팅 기능 ==========
@@ -1122,7 +1077,7 @@
 
     // 고유 채팅 ID 생성 (처음 한번만)
     if (!myChatId) {
-        myChatId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        myChatId = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
         localStorage.setItem('ignition_chat_id', myChatId);
     }
 
@@ -1148,7 +1103,7 @@
         // 참여 기능이 닫혀있으면 채팅도 비활성화
         if (!interactionEnabled) {
             input.disabled = true;
-            input.placeholder = '16:30에 채팅창이 열립니다.';
+            input.placeholder = '관리자가 열면 채팅할 수 있어요';
             sendBtn.disabled = true;
         } else if (chatEnabled) {
             input.disabled = false;
@@ -1167,27 +1122,19 @@
     }
 
     // 채팅 활성화/비활성화 토글 (관리자)
-    function toggleChatEnabled() {
-        const inputPw = prompt('채팅 관리 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            const newState = !chatEnabled;
-            database.ref('chatEnabled').set(newState);
-            alert(newState ? '채팅이 활성화되었습니다.' : '채팅이 비활성화되었습니다.');
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
+    async function toggleChatEnabled() {
+        if (!(await askResetPassword('채팅 관리 비밀번호를 입력하세요:'))) return;
+        const newState = !chatEnabled;
+        database.ref('chatEnabled').set(newState);
+        alert(newState ? '채팅이 활성화되었습니다.' : '채팅이 비활성화되었습니다.');
     }
 
     // 채팅 표시/숨김 토글 (관리자)
-    function toggleChatVisible() {
-        const inputPw = prompt('채팅 관리 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            const newState = !chatVisible;
-            database.ref('chatVisible').set(newState);
-            alert(newState ? '채팅 아이콘이 표시됩니다.' : '채팅 아이콘이 숨겨집니다.');
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
+    async function toggleChatVisible() {
+        if (!(await askResetPassword('채팅 관리 비밀번호를 입력하세요:'))) return;
+        const newState = !chatVisible;
+        database.ref('chatVisible').set(newState);
+        alert(newState ? '채팅 아이콘이 표시됩니다.' : '채팅 아이콘이 숨겨집니다.');
     }
 
     // 채팅 표시 UI 업데이트
@@ -1459,16 +1406,11 @@
     }
 
     // 채팅 전체 삭제 (관리자)
-    function resetChat() {
-        const inputPw = prompt('채팅 삭제 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            if (confirm('모든 채팅을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) {
-                database.ref('chat').remove();
-                alert('채팅이 삭제되었습니다.');
-            }
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
+    async function resetChat() {
+        if (!(await askResetPassword('채팅 삭제 비밀번호를 입력하세요:'))) return;
+        if (!confirm('모든 채팅을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+        database.ref('chat').remove();
+        alert('채팅이 삭제되었습니다.');
     }
 
     // HTML 이스케이프 (XSS 방지)
@@ -1518,227 +1460,6 @@
             localStorage.setItem('ignition_chat_last_read', lastReadTimestamp.toString());
         }
     });
-
-    // ========== 열기 게이지 기능 ==========
-    let hypeCount = 0;
-    let hypeTarget = 20; // 테스트용 20, 실제 300
-    let hypeBuffer = 0;
-    let hypeFlushTimeout = null;
-    let lastHypeMaxTime = 0; // 마지막 100% 달성 시간 (중복 알림 방지)
-    let hypeExplodedTeams = {}; // 팀별 폭발 여부 추적
-    let currentHypeListener = null; // 현재 팀의 hypeCount 리스너
-
-    // 열기 게이지 목표값 실시간 감시
-    database.ref('hypeTarget').on('value', (snapshot) => {
-        hypeTarget = snapshot.val() || 20;
-    });
-
-    // 팀별 폭발 여부 실시간 감시
-    database.ref('hypeExplodedTeams').on('value', (snapshot) => {
-        hypeExplodedTeams = snapshot.val() || {};
-        updateHypeButtonState();
-    });
-
-    // 팀별 열기 게이지 로드
-    function loadTeamHypeCount(team) {
-        // 이전 리스너 제거
-        if (currentHypeListener) {
-            database.ref('hypeCount/' + currentHypeListener).off();
-        }
-        currentHypeListener = team;
-
-        // 새 팀의 게이지 리스너 등록
-        database.ref('hypeCount/' + team).on('value', (snapshot) => {
-            hypeCount = snapshot.val() || 0;
-            updateHypeUI();
-
-            // 100% 달성 시 폭발 이펙트 (현재 팀이 아직 폭발 안 했을 때만)
-            if (hypeCount >= hypeTarget && hypeTarget > 0 && currentTeam && !hypeExplodedTeams[currentTeam]) {
-                triggerHypeExplosion();
-            }
-        });
-    }
-
-    // 열기 UI 업데이트
-    function updateHypeUI() {
-        const percent = Math.min(100, Math.round((hypeCount / hypeTarget) * 100));
-        const percentEl = document.getElementById('hype-percent');
-        const fillEl = document.getElementById('hype-fill');
-
-        percentEl.innerText = percent + '%';
-        fillEl.style.width = percent + '%';
-
-        // 80% 이상일 때 글로우 효과
-        if (percent >= 80) {
-            fillEl.classList.add('maxed');
-        } else {
-            fillEl.classList.remove('maxed');
-        }
-
-        // 관리자 목표값 표시 업데이트
-        const adminTargetEl = document.getElementById('admin-hype-target');
-        if (adminTargetEl) {
-            adminTargetEl.innerText = `(목표: ${hypeTarget})`;
-        }
-
-        updateHypeButtonState();
-    }
-
-    // 버튼 상태 업데이트 (팀별 폭발 완료 시 비활성화)
-    function updateHypeButtonState() {
-        const btn = document.getElementById('hype-btn');
-        const fillEl = document.getElementById('hype-fill');
-        const percentEl = document.getElementById('hype-percent');
-        const explosion = document.getElementById('hype-explosion');
-
-        if (currentTeam && hypeExplodedTeams[currentTeam]) {
-            // 이미 폭발한 팀 - 버튼 비활성화 + 100% 유지 + 영구 글로우 효과
-            btn.disabled = true;
-            btn.innerHTML = '<span class="fire-icon">✓</span><span>열기 MAX 달성!</span>';
-            btn.style.opacity = '0.6';
-            fillEl.style.width = '100%';
-            percentEl.innerText = '100%';
-            fillEl.classList.remove('maxed');
-            fillEl.classList.add('maxed-permanent'); // 영구 글로우
-        } else {
-            // MAX가 아닌 팀 - 모든 글로우 효과 제거
-            btn.disabled = false;
-            btn.innerHTML = '<span class="fire-icon">🔥</span><span>열기 올리기!</span>';
-            btn.style.opacity = '1';
-            fillEl.classList.remove('maxed');
-            fillEl.classList.remove('maxed-permanent');
-            explosion.classList.remove('visible'); // 폭발 이펙트도 제거
-        }
-    }
-
-    // 열기 게이지 접기/펼치기
-    let hypeGaugeCollapsed = false;
-    function toggleHypeGauge() {
-        const content = document.getElementById('hype-gauge-content');
-        const btn = document.getElementById('hype-toggle-btn');
-        hypeGaugeCollapsed = !hypeGaugeCollapsed;
-        if (hypeGaugeCollapsed) {
-            content.classList.add('collapsed');
-            btn.textContent = '▼ 펼치기';
-        } else {
-            content.classList.remove('collapsed');
-            btn.textContent = '▲ 접기';
-        }
-    }
-
-    // 열기 추가 (광클 가능)
-    function addHype() {
-        // 이미 폭발한 팀이면 무시
-        if (currentTeam && hypeExplodedTeams[currentTeam]) return;
-
-        // 버튼 애니메이션
-        const btn = document.getElementById('hype-btn');
-        btn.style.transform = 'scale(0.95)';
-        setTimeout(() => btn.style.transform = '', 100);
-
-        // 버퍼에 추가
-        hypeBuffer++;
-
-        // 로컬 UI 즉시 업데이트 (반응성)
-        hypeCount++;
-        updateHypeUI();
-
-        // 디바운싱: 300ms 후에 한번에 전송
-        clearTimeout(hypeFlushTimeout);
-        hypeFlushTimeout = setTimeout(flushHype, 300);
-    }
-
-    // 버퍼된 열기를 Firebase에 전송 (팀별)
-    function flushHype() {
-        if (hypeBuffer > 0 && currentTeam) {
-            const count = hypeBuffer;
-            hypeBuffer = 0;
-            database.ref('hypeCount/' + currentTeam).transaction(current => (current || 0) + count);
-        }
-    }
-
-    // 폭발 이펙트 트리거
-    function triggerHypeExplosion() {
-        const now = Date.now();
-        // 3초 내 중복 방지
-        if (now - lastHypeMaxTime < 3000) return;
-        if (!currentTeam || hypeExplodedTeams[currentTeam]) return;
-        lastHypeMaxTime = now;
-
-        // 해당 팀 폭발 완료 기록
-        database.ref('hypeExplodedTeams/' + currentTeam).set(true);
-
-        // 폭발 이펙트 표시
-        const explosion = document.getElementById('hype-explosion');
-        explosion.classList.add('visible');
-
-        // 300초 후 숨김 (리셋은 하지 않음 - 팀별 한 번이므로)
-        setTimeout(() => {
-            explosion.classList.remove('visible');
-        }, 300000);
-
-        // 채팅에 MAX 알림 (팀명 포함)
-        const teamShort = currentTeam.split(' ')[0];
-        database.ref('chat').push({
-            type: 'notice',
-            text: `🔥🔥🔥 ${teamShort} 열기 MAX! 🔥🔥🔥`,
-            timestamp: Date.now()
-        });
-    }
-
-    // 관리자: 열기 목표값 설정
-    function setHypeTarget() {
-        const inputPw = prompt('관리자 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            const newTarget = prompt('새로운 목표값을 입력하세요 (현재: ' + hypeTarget + '):', hypeTarget);
-            if (newTarget && !isNaN(parseInt(newTarget)) && parseInt(newTarget) > 0) {
-                database.ref('hypeTarget').set(parseInt(newTarget));
-                alert('목표값이 ' + newTarget + '(으)로 설정되었습니다.');
-            }
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
-    }
-
-    // 관리자: 팀별 폭발 기록 초기화
-    function resetHypeExploded() {
-        const inputPw = prompt('관리자 비밀번호를 입력하세요:');
-        if (inputPw === RESET_PASSWORD) {
-            if (confirm('모든 팀의 폭발 기록과 게이지를 초기화할까요? 각 팀이 다시 열기 MAX를 달성할 수 있게 됩니다.')) {
-                database.ref('hypeExplodedTeams').remove();
-                database.ref('hypeCount').remove(); // 팀별 게이지 모두 삭제
-                // UI 즉시 업데이트
-                hypeCount = 0;
-                hypeExplodedTeams = {};
-                updateHypeUI();
-                updateHypeButtonState();
-                alert('팀별 폭발 기록이 초기화되었습니다.');
-            }
-        } else if (inputPw !== null) {
-            alert('비밀번호가 틀렸습니다.');
-        }
-    }
-
-    // 관리자: 불끄기 (폭발 이펙트 + 글로우 제거)
-    function turnOffExplosion() {
-        // 폭발 이펙트 즉시 제거
-        document.getElementById('hype-explosion').classList.remove('visible');
-        // 글로우 효과 제거
-        const fillEl = document.getElementById('hype-fill');
-        fillEl.classList.remove('maxed');
-        fillEl.classList.remove('maxed-permanent');
-    }
-
-    // 관리자: 불지르기 (수동 폭발 이펙트)
-    function triggerManualExplosion() {
-        // 폭발 이펙트 표시
-        const explosion = document.getElementById('hype-explosion');
-        explosion.classList.add('visible');
-
-        // 글로우 효과 추가
-        const fillEl = document.getElementById('hype-fill');
-        fillEl.classList.add('maxed-permanent');
-    }
 
     // ========== 관객 참여 기능 일괄 관리 ==========
     // 관객 참여 기능 상태 감시
@@ -1795,7 +1516,7 @@
 
         if (!interactionEnabled) {
             input.disabled = true;
-            input.placeholder = '16:30에 채팅창이 열립니다.';
+            input.placeholder = '관리자가 열면 채팅할 수 있어요';
             sendBtn.disabled = true;
         } else if (chatEnabled) {
             input.disabled = false;
@@ -1804,34 +1525,15 @@
         }
     }
 
-    // 추첨 참여 상태 업데이트
+    // 추첨 참여 상태 업데이트 (참여 전/후, 열림/닫힘 분기는 updateRaffleUI가 담당)
     function updateRaffleInteractionState() {
-        const joinBtn = document.getElementById('raffle-join-btn');
-        const statusEl = document.getElementById('raffle-status');
-
-        if (!joinBtn) return;
-
-        if (myRaffleNumber) {
-            // 이미 참여한 경우 - 기존 로직 유지
-            return;
-        }
-
-        if (!interactionEnabled) {
-            joinBtn.disabled = true;
-            joinBtn.classList.add('interaction-disabled');
-            joinBtn.innerText = '아직 참여할 수 없습니다';
-            if (statusEl) statusEl.innerText = '관리자가 열면 참여할 수 있어요';
-        } else {
-            joinBtn.disabled = false;
-            joinBtn.classList.remove('interaction-disabled');
-            joinBtn.innerText = '추첨 참여하기';
-            if (statusEl) statusEl.innerText = '참여하면 번호를 받아요';
-        }
+        updateRaffleUI();
     }
 
     // 초기화
     generateSetlist();
     setupHeartListeners();
+    updateInteractionUI(); // DB 응답 전에도 참여 버튼을 닫힘 상태로 표시
 </script>
 
 </body>
