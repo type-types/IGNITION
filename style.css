@@ -1,0 +1,305 @@
+:root { --main-color: #ff4d00; --bg-color: #0a0a0a; --card-bg: #1a1a1a; }
+* { box-sizing: border-box; }
+body { background-color: var(--bg-color); color: white; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; text-align: center; min-height: 100vh; }
+.container { max-width: 600px; margin: 0 auto; }
+
+/* 헤더 */
+header h1 { letter-spacing: 2px; margin-bottom: 5px; }
+header p { color: #888; margin-top: 0; }
+
+/* 현재 재생 중 표시 (상단 고정) */
+.now-playing { background: linear-gradient(135deg, var(--main-color), #ff6a33); padding: 12px 20px; border-radius: 0 0 12px 12px; display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.now-playing.visible { display: block; }
+.now-playing-inner { max-width: 600px; margin: 0 auto; }
+body.has-now-playing { padding-top: 100px; }
+.now-playing-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 5px; }
+.now-playing-team { font-size: 0.9rem; opacity: 0.9; }
+.now-playing-song { font-size: 1.5rem; font-weight: 800; margin-top: 3px; }
+
+/* 피버 타임 (열기 게이지) */
+.hype-gauge { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+.hype-gauge-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.75rem; }
+.hype-toggle-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer; padding: 2px 8px; }
+.hype-gauge-percent { font-weight: bold; font-size: 0.85rem; }
+.hype-gauge-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 120px; opacity: 1; }
+.hype-gauge-content.collapsed { max-height: 0; opacity: 0; }
+.hype-gauge-bar { background: rgba(0,0,0,0.3); border-radius: 10px; height: 16px; overflow: hidden; }
+.hype-gauge-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #FFD700, #FF6B00, #FF0000); border-radius: 10px; transition: width 0.2s ease; }
+.hype-gauge-fill.hot { box-shadow: 0 0 12px #FFD700; }
+.hype-gauge-fill.maxed { animation: hypeGlow 1s ease-in-out infinite alternate; }
+@keyframes hypeGlow { from { box-shadow: 0 0 8px #FFD700; } to { box-shadow: 0 0 20px #FF6B00; } }
+.hype-btn { margin-top: 10px; width: 100%; padding: 10px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; color: white; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+.hype-btn:active { transform: scale(0.95); }
+.hype-btn:disabled { opacity: 0.6; cursor: default; }
+.hype-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+/* 피버 타임 폭발 이펙트: 4초 동안 한 번만 재생 */
+.hype-explosion { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 400; display: none; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, rgba(255,107,0,0.15), rgba(255,0,0,0.55)); }
+.hype-explosion.visible { display: flex; animation: explosionFade 4s ease forwards; }
+.hype-explosion-text { font-size: 3.5rem; font-weight: 900; color: white; text-shadow: 0 0 30px #FFD700, 0 0 60px #FF6B00; animation: explosionPop 0.6s ease; }
+@keyframes explosionFade { 0% { opacity: 0; } 10% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes explosionPop { 0% { transform: scale(0.5) rotate(-6deg); } 60% { transform: scale(1.3) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+
+/* 셋리스트 섹션 */
+.setlist-section { text-align: left; margin-bottom: 30px; }
+.team-block { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #333; }
+.team-block.has-active { border-color: var(--main-color); box-shadow: 0 0 20px rgba(255, 77, 0, 0.15); }
+.team-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.team-name { font-size: 1.1rem; font-weight: bold; color: var(--main-color); }
+.team-badge { background: #333; color: #888; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; }
+.team-block.has-active .team-badge { background: var(--main-color); color: white; }
+.team-members { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.75rem; color: #999; margin-bottom: 15px; padding: 12px; background: #1f1f1f; border-radius: 8px; }
+.team-members .member-item { display: flex; gap: 6px; }
+.team-members .part { color: #666; flex-shrink: 0; min-width: 55px; }
+.team-members .names { line-height: 1.5; }
+
+/* 곡 리스트 */
+.song-list { display: flex; flex-direction: column; gap: 8px; }
+.song-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: #252525; border-radius: 8px; transition: all 0.3s; cursor: default; }
+.song-item.active { background: var(--main-color); transform: scale(1.02); box-shadow: 0 4px 15px rgba(255, 77, 0, 0.4); }
+.song-number { width: 24px; height: 24px; border-radius: 50%; background: #333; color: #888; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.song-item.active .song-number { background: rgba(255,255,255,0.2); color: white; }
+.song-title { font-size: 0.95rem; flex: 1; }
+.song-item.active .song-title { font-weight: bold; }
+.playing-icon { display: none; }
+.song-item.active .playing-icon { display: block; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* 하트 버튼 */
+.heart-btn { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); border: none; color: #ff6b81; padding: 6px 10px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; flex-shrink: 0; }
+.heart-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+.heart-btn:active { transform: scale(0.95); }
+.heart-btn.clicked { animation: heartPop 0.3s ease; }
+.heart-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.heart-count { font-size: 0.8rem; color: #ccc; min-width: 20px; }
+.song-item.active .heart-btn { background: rgba(255,255,255,0.2); }
+.song-item.active .heart-count { color: white; }
+@keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+/* 하트 플로팅 애니메이션 */
+.floating-heart { position: fixed; pointer-events: none; font-size: 1.5rem; animation: floatUp 1s ease-out forwards; z-index: 200; }
+@keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(1.5); } }
+
+/* 관리자 모드 - 곡 클릭 가능 */
+.admin-mode .song-item { cursor: pointer; }
+.admin-mode .song-item:hover:not(.active) { background: #333; }
+
+/* 비밀번호 입력 */
+.password-section { margin-top: 30px; padding-top: 30px; border-top: 1px solid #333; }
+.password-input-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+.password-input-group input { background: #222; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 8px; font-size: 1rem; width: 200px; }
+.password-input-group input:focus { outline: none; border-color: var(--main-color); }
+.password-input-group button { background: var(--main-color); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+.password-input-group button:hover { background: #ff6a33; }
+.error-msg { color: #ff4444; font-size: 0.85rem; margin-top: 10px; display: none; }
+
+/* 관리자 컨트롤 */
+.admin-controls { margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; display: none; }
+.admin-controls.visible { display: block; }
+.admin-controls-title { font-size: 0.85rem; color: #888; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
+.admin-controls-title span { color: #4CAF50; }
+.admin-logout-btn { background: none; border: 1px solid #444; color: #888; font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; cursor: pointer; margin-left: 6px; }
+.admin-logout-btn:hover { border-color: #888; color: #ccc; }
+.special-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.special-btn { background: #222; border: 1px solid #444; color: white; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.special-btn:hover { border-color: var(--main-color); background: #2a2a2a; }
+
+/* 리더보드 플로팅 버튼 */
+.leaderboard-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+.leaderboard-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6); }
+.leaderboard-fab:active { transform: scale(0.95); }
+
+/* 리더보드 모달 */
+.leaderboard-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+.leaderboard-overlay.visible { display: flex; }
+.leaderboard-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 400px; max-height: 80vh; overflow: hidden; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.leaderboard-header { background: linear-gradient(135deg, #FFD700, #FFA500); padding: 20px; text-align: center; }
+.leaderboard-header h2 { margin: 0; font-size: 1.3rem; color: #000; }
+.leaderboard-header p { margin: 5px 0 0; font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+.leaderboard-content { padding: 15px; max-height: 50vh; overflow-y: auto; }
+.leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #252525; border-radius: 10px; margin-bottom: 10px; }
+.leaderboard-item.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1)); border: 1px solid rgba(255,215,0,0.3); }
+.leaderboard-item.rank-2 { background: linear-gradient(135deg, rgba(192,192,192,0.2), rgba(169,169,169,0.1)); border: 1px solid rgba(192,192,192,0.3); }
+.leaderboard-item.rank-3 { background: linear-gradient(135deg, rgba(205,127,50,0.2), rgba(184,115,51,0.1)); border: 1px solid rgba(205,127,50,0.3); }
+.leaderboard-rank { width: 32px; height: 32px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
+.rank-1 .leaderboard-rank { background: #FFD700; color: #000; }
+.rank-2 .leaderboard-rank { background: #C0C0C0; color: #000; }
+.rank-3 .leaderboard-rank { background: #CD7F32; color: #fff; }
+.leaderboard-info { flex: 1; min-width: 0; }
+.leaderboard-song { font-weight: bold; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.leaderboard-team { font-size: 0.75rem; color: #888; margin-top: 2px; }
+.leaderboard-hearts { color: #ff6b81; font-weight: bold; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.leaderboard-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+.leaderboard-close:hover { background: #444; }
+.leaderboard-empty { text-align: center; padding: 30px; color: #666; }
+
+/* 추첨 참여 플로팅 버튼 */
+.raffle-fab { position: fixed; bottom: 24px; left: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+.raffle-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(155, 89, 182, 0.6); }
+.raffle-fab.joined { background: linear-gradient(135deg, #27ae60, #2ecc71); box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+.raffle-fab.joined:hover { box-shadow: 0 6px 20px rgba(46, 204, 113, 0.6); }
+
+/* 추첨 모달 */
+.raffle-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+.raffle-overlay.visible { display: flex; }
+.raffle-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 400px; overflow: hidden; animation: slideUp 0.3s ease; }
+.raffle-header { background: linear-gradient(135deg, #9b59b6, #8e44ad); padding: 20px; text-align: center; }
+.raffle-header.joined { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+.raffle-header h2 { margin: 0; font-size: 1.3rem; }
+.raffle-header p { margin: 5px 0 0; font-size: 0.8rem; opacity: 0.8; }
+.raffle-content { padding: 25px; text-align: center; }
+.raffle-number { font-size: 4rem; font-weight: 900; color: var(--main-color); margin: 20px 0; letter-spacing: 4px; }
+.raffle-status { font-size: 0.9rem; color: #888; margin-bottom: 20px; }
+.raffle-join-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+.raffle-join-btn:hover { transform: scale(1.02); }
+.raffle-join-btn:disabled { background: #333; color: #666; cursor: default; transform: none; }
+.raffle-join-btn.interaction-disabled { background: #444; color: #888; cursor: not-allowed; }
+.raffle-participant-count { font-size: 0.85rem; color: #888; margin-top: 15px; }
+.raffle-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; }
+.raffle-close:hover { background: #444; }
+
+/* 관리자 추첨 컨트롤 */
+.raffle-admin { margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+.raffle-admin-title { font-size: 0.8rem; color: #888; margin-bottom: 10px; }
+.raffle-draw-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+.raffle-draw-btn:hover { opacity: 0.9; }
+.raffle-reset-btn { width: 100%; padding: 12px; background: transparent; border: 1px solid #444; border-radius: 8px; color: #888; font-size: 0.85rem; cursor: pointer; }
+.raffle-reset-btn:hover { border-color: #666; color: #aaa; }
+
+/* 당첨 결과 모달 */
+.winner-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+.winner-overlay.visible { display: flex; }
+.winner-modal { text-align: center; animation: winnerPop 0.5s ease; }
+@keyframes winnerPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+.winner-icon { font-size: 5rem; margin-bottom: 20px; }
+.winner-label { font-size: 1.2rem; color: #888; margin-bottom: 10px; }
+.winner-number { font-size: 6rem; font-weight: 900; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.my-number-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; }
+.my-number-label { font-size: 0.9rem; color: #666; margin-bottom: 5px; }
+.my-number { font-size: 2.5rem; font-weight: 700; color: #9b59b6; }
+.winner-result { margin-top: 15px; font-size: 1.1rem; font-weight: bold; min-height: 30px; }
+.winner-result.is-winner { color: #FFD700; font-size: 1.5rem; animation: winnerPulse 0.5s ease infinite alternate; }
+@keyframes winnerPulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+.winner-modal.is-winner { background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%); }
+.winner-close { margin-top: 30px; padding: 15px 40px; background: var(--main-color); border: none; border-radius: 10px; color: white; font-size: 1rem; cursor: pointer; }
+
+/* 채팅 플로팅 버튼 */
+.chat-fab { position: fixed; bottom: 88px; right: 24px; width: 56px; height: 56px; background: linear-gradient(135deg, #3498db, #2980b9); border: none; border-radius: 50%; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4); z-index: 150; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+.chat-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6); }
+.chat-fab:active { transform: scale(0.95); }
+.chat-fab .unread-badge { position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; background: #e74c3c; border-radius: 50%; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; font-weight: bold; display: none; }
+.chat-fab .unread-badge.visible { display: flex; }
+
+/* 채팅 모달 */
+.chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: flex-end; justify-content: center; padding: 0; }
+.chat-overlay.visible { display: flex; }
+.chat-modal { background: var(--card-bg); border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; height: 70vh; display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+.chat-header { background: linear-gradient(135deg, #3498db, #2980b9); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-radius: 16px 16px 0 0; }
+.chat-header h2 { margin: 0; font-size: 1.1rem; }
+.chat-header-info { font-size: 0.75rem; opacity: 0.8; }
+.chat-close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+.chat-message { background: #252525; padding: 10px 14px; border-radius: 12px; max-width: 85%; word-break: break-word; }
+.chat-message.mine { background: #3498db; align-self: flex-end; }
+.chat-message-text { font-size: 0.9rem; line-height: 1.4; }
+.chat-message-time { font-size: 0.65rem; color: #888; margin-top: 4px; text-align: right; }
+.chat-message.mine .chat-message-time { color: rgba(255,255,255,0.6); }
+.chat-empty { text-align: center; color: #666; padding: 40px 20px; }
+.chat-input-area { padding: 15px; border-top: 1px solid #333; display: flex; gap: 10px; }
+.chat-input { flex: 1; background: #252525; border: 1px solid #444; color: white; padding: 12px 15px; border-radius: 25px; font-size: 0.9rem; outline: none; }
+.chat-input:focus { border-color: #3498db; }
+.chat-input::placeholder { color: #666; }
+.chat-send-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #3498db, #2980b9); border: none; border-radius: 50%; color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.chat-send-btn:hover { transform: scale(1.05); }
+.chat-send-btn:disabled { background: #333; color: #666; cursor: default; transform: none; }
+.chat-cooldown { font-size: 0.75rem; color: #e74c3c; text-align: center; padding: 5px; display: none; }
+.chat-cooldown.visible { display: block; }
+.donate-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #f1c40f, #f39c12); border: none; border-radius: 50%; color: white; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.donate-btn:hover { transform: scale(1.05); }
+
+/* 후원 모달 */
+.donate-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
+.donate-overlay.visible { display: flex; }
+.donate-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 320px; overflow: hidden; animation: slideUp 0.3s ease; }
+.donate-header { background: linear-gradient(135deg, #f1c40f, #f39c12); padding: 20px; text-align: center; }
+.donate-header h2 { margin: 0; font-size: 1.3rem; color: #000; }
+.donate-header p { margin: 5px 0 0; font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+.donate-content { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.donate-amount-btn { padding: 15px; background: #252525; border: 2px solid #444; border-radius: 10px; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+.donate-amount-btn:hover { border-color: #f1c40f; background: #333; }
+.donate-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; }
+.donate-close:hover { background: #444; }
+
+/* 후원 알림 스타일 */
+.chat-donate-notice { align-self: center; background: linear-gradient(135deg, #f1c40f, #f39c12); color: #000; padding: 10px 18px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
+/* 채팅 메시지 숨김 버튼 (관리자용) */
+.chat-message-wrapper { display: flex; align-items: flex-start; gap: 8px; }
+.chat-message-wrapper.mine { flex-direction: row-reverse; }
+.chat-hide-btn { background: #e74c3c; border: none; color: white; width: 24px; height: 24px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; opacity: 0; transition: opacity 0.2s; flex-shrink: 0; margin-top: 8px; }
+.chat-message-wrapper:hover .chat-hide-btn { opacity: 1; }
+.chat-message.hidden { opacity: 0.4; background: #1a1a1a; }
+.chat-message.hidden .chat-message-text { text-decoration: line-through; color: #666; }
+
+/* 채팅 시스템 알림 */
+.chat-system-notice { align-self: center; background: #333; color: #aaa; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+
+/* 전체 채팅 모달 */
+.all-chat-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
+.all-chat-overlay.visible { display: flex; }
+.all-chat-modal { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+.all-chat-header { background: linear-gradient(135deg, #8e44ad, #9b59b6); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-radius: 16px 16px 0 0; }
+.all-chat-header h2 { margin: 0; font-size: 1.1rem; }
+.all-chat-header-info { font-size: 0.75rem; opacity: 0.8; }
+.all-chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+.all-chat-item { background: #252525; padding: 10px 14px; border-radius: 10px; }
+.all-chat-item.mine { background: #3498db; }
+.all-chat-item.hidden-msg { opacity: 0.4; background: #1a1a1a; }
+.all-chat-text { font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
+.all-chat-time { font-size: 0.65rem; color: #888; margin-top: 4px; }
+.all-chat-item.mine .all-chat-time { color: rgba(255,255,255,0.6); }
+.all-chat-close { display: block; width: 100%; padding: 15px; background: #333; border: none; color: white; font-size: 0.9rem; cursor: pointer; border-radius: 0 0 16px 16px; }
+.all-chat-close:hover { background: #444; }
+.all-chat-loading { text-align: center; color: #888; padding: 40px; }
+
+/* 연결 끊김 배너 */
+.conn-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 500; background: #e74c3c; color: white; font-size: 0.85rem; padding: 8px; text-align: center; display: none; }
+.conn-banner.visible { display: block; }
+
+/* 접속자 수 */
+.presence-count { color: #666; font-size: 0.8rem; margin-top: 4px; min-height: 1em; }
+
+/* Now Playing 보조 정보: 경과 시간, 다음 곡 */
+.now-playing-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 0.75rem; opacity: 0.85; }
+.now-playing-meta:empty { display: none; }
+
+/* 관리자 고정 조작바 */
+.admin-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 160; background: #151515; border-top: 1px solid #333; padding: 10px 12px; gap: 8px; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.5); }
+body.is-admin .admin-bar { display: flex; }
+body.is-admin { padding-bottom: 80px; }
+.admin-bar-btn { background: #2a2a2a; border: 1px solid #444; color: white; padding: 12px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+.admin-bar-btn:active { background: var(--main-color); }
+.admin-bar-btn:disabled { opacity: 0.4; cursor: default; }
+.admin-bar-now { flex: 1; min-width: 0; font-size: 0.8rem; color: #ccc; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.is-admin .raffle-fab, body.is-admin .leaderboard-fab { bottom: 88px; }
+body.is-admin .chat-fab { bottom: 152px; }
+
+/* 움직임 축소 설정 사용자: 플래시와 펄스 대신 정적 표시 */
+@media (prefers-reduced-motion: reduce) {
+    .hype-explosion.visible, .hype-explosion-text, .hype-gauge-fill.maxed, .winner-result.is-winner, .song-item.active .playing-icon { animation: none !important; }
+}
+
+/* 고정 공지 */
+.pinned-strip { display: none; margin: 0 auto 16px; max-width: 600px; background: linear-gradient(135deg, rgba(241,196,15,0.15), rgba(243,156,18,0.1)); border: 1px solid rgba(241,196,15,0.5); color: #f1c40f; border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; text-align: left; cursor: pointer; }
+.pinned-strip.visible { display: block; }
+.chat-pinned { display: none; background: rgba(241,196,15,0.12); border-bottom: 1px solid rgba(241,196,15,0.4); color: #f1c40f; padding: 8px 15px; font-size: 0.8rem; }
+.chat-pinned.visible { display: block; }
+.admin-input { flex: 1; min-width: 0; background: #222; border: 1px solid #444; color: white; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; }
+.admin-input:focus { outline: none; border-color: var(--main-color); }
+
+/* 채팅 닉네임 */
+.chat-message-name { font-size: 0.65rem; color: #888; margin-bottom: 3px; }
+.chat-message.mine .chat-message-name { display: none; }
+.all-chat-name { font-size: 0.65rem; color: #888; margin-bottom: 2px; }
+.all-chat-item.mine .all-chat-name { color: rgba(255,255,255,0.7); }
