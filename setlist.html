@@ -7,6 +7,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Firebase 설정(API 키 포함)은 저장소에 두지 않고 Hosting이 주입한다. 로컬은 firebase emulators:start --only hosting -->
+    <script src="/__/firebase/init.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -14,6 +16,7 @@
 
 <!-- 연결 끊김 배너 -->
 <div class="conn-banner" id="conn-banner">📡 연결이 끊겼습니다. 다시 연결하는 중...</div>
+<div class="conn-banner" id="config-banner">⚠️ Firebase 설정을 불러오지 못했습니다. 이 페이지는 Firebase Hosting 또는 firebase emulators:start --only hosting 으로 열어야 합니다.</div>
 
 <div class="container">
     <header>

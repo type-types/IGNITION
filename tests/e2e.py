@@ -30,7 +30,7 @@ def ok(cond, label):
 
 async def wipe(page):
     await page.evaluate("""() => {
-        ['hearts','chat','chatRate','raffle','hypeCount','hypeExplodedTeams','hypeTarget','hypeAuto','pinnedNotice','announcement','setlist'].forEach(p => database.ref(p).remove());
+        ['hearts','chat','chatRate','raffle','hypeCount','hypeExplodedTeams','hypeNoticed','hypeTarget','hypeAuto','pinnedNotice','announcement','setlist'].forEach(p => database.ref(p).remove());
         database.ref('interactionEnabled').set(false);
         database.ref('liveStatus').set({ team: '', song: '', updatedAt: Date.now() });
     }""")
@@ -54,7 +54,7 @@ async def main():
 
         # 관리자 로그인 (Firebase Authentication)
         await admin.goto(URL + "?admin"); await admin.wait_for_timeout(3000)
-        await admin.evaluate("window.alert = () => {}; window.confirm = () => true;")
+        await admin.evaluate("window.alert = () => {}; window.confirm = () => true; closeWinner(); closeBest();")
         await admin.fill("#admin-password", "wrong-password"); await admin.press("#admin-password", "Enter"); await admin.wait_for_timeout(2500)
         ok(await admin.is_visible("#error-msg") and not await admin.evaluate("isAdmin"), "[관리자] 틀린 비밀번호 거부")
         await admin.fill("#admin-password", PASSWORD); await admin.click("#password-section button"); await admin.wait_for_timeout(2500)
@@ -126,7 +126,12 @@ async def main():
         await aud.wait_for_timeout(2500)
         ok(await aud.evaluate("document.getElementById('hype-explosion').classList.contains('visible')"), "[관객] MAX 폭발")
         ok(await screen.evaluate("document.getElementById('hype-explosion').classList.contains('visible')"), "[무대] MAX 폭발 동기화")
-        ok(await admin.evaluate("chatMessages.filter(m => m.type === 'notice' && m.text.includes('MAX')).length") == 1, "[피버] MAX 알림 1건")
+        for _ in range(16):  # 관객 도달 → 서버 → 관리자 리스너 → 알림 → 채팅 수신까지 왕복이 많아 최대 8초 기다린다
+            if await admin.evaluate("chatMessages.filter(m => m.type === 'notice' && m.text.includes('MAX')).length") >= 1:
+                break
+            await admin.wait_for_timeout(500)
+        max_n = await admin.evaluate("chatMessages.filter(m => m.type === 'notice' && m.text.includes('MAX')).length")
+        ok(max_n == 1, f"[피버] MAX 알림 정확히 1건 (실제 {max_n})")
         await admin.evaluate("toggleHypeAuto()"); await aud.wait_for_timeout(1200)
         ok(await aud.evaluate("hypeAuto"), "[피버] 자동 목표 복귀")
 

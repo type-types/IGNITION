@@ -120,6 +120,12 @@
     "announcement": {
       ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
       ".validate": "newData.hasChildren(['type', 'items', 'at'])"
+    },
+    "hypeNoticed": {
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
+      "$team": {
+        ".validate": "newData.isBoolean()"
+      }
     }
   }
 }

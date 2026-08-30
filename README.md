@@ -70,11 +70,13 @@
 
 로컬에서 열기
 
-빌드 단계가 없습니다. `setlist.html`을 브라우저에서 직접 열면 됩니다. Firebase SDK는 CDN에서 불러오므로 `file://`로 열어도 실시간 기능이 동작합니다.
+빌드 단계가 없습니다. Firebase 설정(API 키 포함)은 저장소에 두지 않고 Hosting이 `/__/firebase/init.js`로 주입하므로, 로컬에서는 Hosting 에뮬레이터로 엽니다. `file://`로 직접 열면 설정이 없다는 안내만 나옵니다.
 
 ```bash
-open setlist.html
+firebase emulators:start --only hosting
 ```
+
+터미널에 표시되는 주소(기본 http://localhost:5000, 포트가 사용 중이면 다른 번호)를 엽니다. 에뮬레이터가 실제 프로젝트의 설정을 주입하므로 로컬에서도 실제 DB에 연결됩니다.
 
 무대 화면은 주소 뒤에 `?screen`을 붙입니다. 프로젝터나 무대 옆 모니터에서 브라우저 전체 화면으로 띄우면 됩니다.
 
@@ -92,10 +94,10 @@ https://ignition-f1bbe.web.app/?admin
 
 다른 공연에 쓰기
 
-1. `setlist.html`의 `firebaseConfig`를 본인 Firebase 프로젝트 값으로 바꿉니다.
-2. `playlist` 배열의 팀, 팀원, 곡 목록을 수정합니다.
+1. `.firebaserc`의 프로젝트 ID를 본인 Firebase 프로젝트로 바꿉니다. 설정과 API 키는 Hosting이 주입하므로 코드에 적을 것이 없습니다. API 키에는 Google Cloud 콘솔에서 HTTP 리퍼러 제한(본인 도메인과 localhost)을 걸어 둡니다.
+2. `app.js`의 `DEFAULT_PLAYLIST`를 수정하거나, 배포 후 관리자 화면의 "셋리스트 편집"으로 바꿉니다. `SITE_URL`은 무대 화면 QR에 쓰이므로 본인 주소로 바꿉니다.
 3. Firebase 콘솔에서 Authentication의 이메일/비밀번호 로그인을 켜고 관리자 계정을 하나 만든 뒤, `setlist.html`의 `ADMIN_EMAIL`과 `database.rules.json`의 관리자 UID를 그 계정 값으로 바꿉니다.
-4. `.firebaserc`의 프로젝트 ID를 바꾸고 배포합니다. 호스팅과 Realtime Database 보안 규칙(`database.rules.json`)이 함께 올라갑니다.
+4. 배포합니다. 호스팅과 Realtime Database 보안 규칙(`database.rules.json`)이 함께 올라갑니다.
 
 ```bash
 firebase login
@@ -216,7 +218,7 @@ Firebase의 `.info/connected`와 `onDisconnect`로 기기마다 `presence` 항�
 
 관리자 인증
 
-처음에는 비밀번호를 소스에 두고 브라우저에서 비교했습니다. 서버가 없는 정적 페이지라 시크릿 매니저를 써도 결국 브라우저가 값을 받아야 하므로 숨길 수 없고, 개발자 도구로 `isAdmin`만 바꾸면 관리자 행동이 가능했습니다. 그래서 Firebase Authentication으로 옮겼습니다. 비밀번호는 Firebase가 보관하고, 관리자 전용 경로는 DB 규칙이 로그인한 UID를 서버 측에서 확인합니다. 브라우저에서 `isAdmin`을 바꿔도 곡 변경이나 삭제는 규칙에서 거부됩니다. 소스에 남는 것은 관리자 이메일과 UID뿐이고, 둘 다 비밀이 아닙니다. Authentication의 가입 API는 열려 있지만 규칙이 이 UID 하나만 인정하므로 다른 계정을 만들어도 아무 권한이 없습니다.
+처음에는 비밀번호를 소스에 두고 브라우저에서 비교했습니다. 서버가 없는 정적 페이지라 시크릿 매니저를 써도 결국 브라우저가 값을 받아야 하므로 숨길 수 없고, 개발자 도구로 `isAdmin`만 바꾸면 관리자 행동이 가능했습니다. 그래서 Firebase Authentication으로 옮겼습니다. 비밀번호는 Firebase가 보관하고, 관리자 전용 경로는 DB 규칙이 로그인한 UID를 서버 측에서 확인합니다. 브라우저에서 `isAdmin`을 바꿔도 곡 변경이나 삭제는 규칙에서 거부됩니다. 소스에 남는 것은 관리자 이메일과 UID뿐이고, 둘 다 비밀이 아닙니다. Firebase 웹 API 키도 설계상 공개 식별자이지만, 저장소에는 두지 않고 Hosting이 주입하게 했고 키 자체에는 HTTP 리퍼러 제한을 걸어 다른 사이트에서는 쓸 수 없게 했습니다. Authentication의 가입 API는 열려 있지만 규칙이 이 UID 하나만 인정하므로 다른 계정을 만들어도 아무 권한이 없습니다.
 
 ## 배우고 느낀 점
 

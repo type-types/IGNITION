@@ -1,18 +1,13 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyAc3yxKWbhe2wXo2yXJTTRsHC7lflCPlvY",
-    authDomain: "ignition-f1bbe.firebaseapp.com",
-    databaseURL: "https://ignition-f1bbe-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ignition-f1bbe",
-    storageBucket: "ignition-f1bbe.firebasestorage.app",
-    messagingSenderId: "683379402225",
-    appId: "1:683379402225:web:43175ebf42a1842e559050"
-};
 
 // 관리자 계정은 Firebase Authentication에 있다. 비밀번호는 코드에 없고 Firebase가 보관한다.
 // 관리자 전용 쓰기(곡 변경, 참여 열기, 삭제 등)는 database.rules.json에서 이 계정의 UID로만 허용한다.
 const ADMIN_EMAIL = "admin@ignition-f1bbe.web.app";
 
-firebase.initializeApp(firebaseConfig);
+// 설정은 Hosting의 /__/firebase/init.js 가 initializeApp까지 해 둔다. 없으면 안내만 띄우고 멈춘다.
+if (!firebase.apps.length) {
+    document.getElementById('config-banner').classList.add('visible');
+    throw new Error('Firebase 설정이 없습니다. Hosting 또는 hosting 에뮬레이터로 여세요.');
+}
 const database = firebase.database();
 const auth = firebase.auth();
 
@@ -1375,13 +1370,17 @@ database.ref('hypeExplodedTeams').on('value', (snapshot) => {
     if (hypeExplodedLoaded && currentTeam && hypeExplodedTeams[currentTeam] && !prev[currentTeam]) {
         showHypeExplosion();
     }
-    // MAX 채팅 알림은 알림 쓰기 권한이 있는 관리자 클라이언트가 올린다 (새로 MAX가 된 팀만)
+    // MAX 채팅 알림은 알림 쓰기 권한이 있는 관리자 클라이언트가 올린다.
+    // 관리자 기기가 여러 대여도 hypeNoticed/{팀}을 transaction으로 선점한 한 대만 올린다.
     if (hypeExplodedLoaded && isAdmin) {
         Object.keys(hypeExplodedTeams).filter(team => !prev[team]).forEach(team => {
-            database.ref('chat').push({
-                type: 'notice',
-                text: `🔥🔥🔥 ${team.split(' ')[0]} 피버 타임 MAX! 🔥🔥🔥`,
-                timestamp: Date.now()
+            database.ref('hypeNoticed/' + team).transaction(current => current ? undefined : true, (error, committed) => {
+                if (!committed) return;
+                database.ref('chat').push({
+                    type: 'notice',
+                    text: `🔥🔥🔥 ${team.split(' ')[0]} 피버 타임 MAX! 🔥🔥🔥`,
+                    timestamp: Date.now()
+                });
             });
         });
     }
@@ -1496,6 +1495,7 @@ function toggleHypeAuto() {
 function resetHype() {
     if (!confirm('모든 팀의 게이지와 피버 타임 MAX 기록을 초기화할까요?')) return;
     database.ref('hypeExplodedTeams').remove();
+    database.ref('hypeNoticed').remove();
     database.ref('hypeCount').remove();
     alert('피버 타임이 초기화되었습니다.');
 }
@@ -1511,6 +1511,7 @@ function forceHypeMax() {
 function clearHypeTeam() {
     if (!hypeListenerTeam) { alert('먼저 연주 중인 곡을 선택하세요.'); return; }
     database.ref('hypeExplodedTeams/' + hypeListenerTeam).remove();
+    database.ref('hypeNoticed/' + hypeListenerTeam).remove();
     database.ref('hypeCount/' + hypeListenerTeam).remove();
 }
 
