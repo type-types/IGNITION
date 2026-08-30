@@ -30,7 +30,8 @@
       "$clientId": {
         ".write": true,
         ".validate": "newData.val() == true"
-      }
+      },
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'"
     },
     "hearts": {
       ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'",
@@ -110,7 +111,8 @@
       "$chatId": {
         ".write": "!data.exists() || newData.val() - data.val() >= 10000",
         ".validate": "newData.isNumber() && newData.val() >= now - 2000"
-      }
+      },
+      ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'"
     },
     "setlist": {
       ".write": "auth != null && auth.uid == 'km1QeJCXvVRyDrs2srwvnD9Kwtt2'"
